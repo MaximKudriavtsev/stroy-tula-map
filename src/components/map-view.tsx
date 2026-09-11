@@ -6,9 +6,21 @@ import {
   statusLabels,
   type ConstructionStatus,
 } from "@/data/objects";
+import { tulaOblastBoundary } from "@/data/tula-oblast-boundary";
 
 const TULA_OBLAST_CENTER: [number, number] = [53.92, 37.62];
 const TULA_OBLAST_ZOOM = 8;
+const TULA_OBLAST_BORDER_COLOR = "#FF2E00";
+const TULA_OBLAST_OUTSIDE_FILL = "#0B1220";
+
+/** Внешнее кольцо на весь мир: внутри него вырезается Тульская область. */
+const WORLD_OUTER_RING: number[][] = [
+  [85, -179.99],
+  [85, 179.99],
+  [-85, 179.99],
+  [-85, -179.99],
+  [85, -179.99],
+];
 
 const markerColorByStatus: Record<ConstructionStatus, string> = {
   planned: "#64748b",
@@ -78,6 +90,49 @@ export const MapView = () => {
           zoom: TULA_OBLAST_ZOOM,
           controls: ["zoomControl", "geolocationControl"],
         });
+
+        const oblastMask = new ymapsApi.Polygon(
+          [WORLD_OUTER_RING, ...tulaOblastBoundary],
+          {},
+          {
+            coordRendering: "straightPath",
+            fillColor: TULA_OBLAST_OUTSIDE_FILL,
+            fillOpacity: 0.42,
+            interactivityModel: "default#silent",
+            strokeWidth: 0,
+            zIndex: 0,
+          } as ymaps.IPolygonOptions & {
+            coordRendering: "straightPath";
+          },
+        );
+        oblastMask.geometry?.setFillRule("evenOdd");
+
+        const oblastBorder = new ymapsApi.Polygon(
+          tulaOblastBoundary,
+          {
+            hintContent: "Тульская область",
+          },
+          {
+            fill: false,
+            interactivityModel: "default#silent",
+            strokeColor: ["#FFFFFF", TULA_OBLAST_BORDER_COLOR],
+            strokeOpacity: [0.95, 1],
+            strokeWidth: [8, 4],
+            zIndex: 1,
+          },
+        );
+
+        map.geoObjects.add(oblastMask);
+        map.geoObjects.add(oblastBorder);
+
+        const oblastBounds = oblastBorder.geometry?.getBounds();
+
+        if (oblastBounds) {
+          map.setBounds(oblastBounds, {
+            checkZoomRange: true,
+            zoomMargin: [24],
+          });
+        }
 
         for (const object of constructionObjects) {
           if (object.latitude === null || object.longitude === null) {
