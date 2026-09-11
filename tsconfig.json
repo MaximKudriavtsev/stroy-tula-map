@@ -1,7 +1,0 @@
-{
-  "compilerOptions": {
-    "noEmit": true,
-    "types": ["node"]
-  },
-  "include": ["vitest.config.ts", "playwright.config.ts", "eslint.config.js", "tools/**/*.ts", "tests/**/*.ts"]
-}
