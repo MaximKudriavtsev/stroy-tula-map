@@ -28,6 +28,18 @@ const markerColorByStatus: Record<ConstructionStatus, string> = {
   completed: "#16a34a",
 };
 
+const expandBounds = (bounds: number[][], factor: number): number[][] => {
+  const southWest = bounds[0];
+  const northEast = bounds[1];
+  const latPadding = (northEast[0] - southWest[0]) * factor;
+  const lonPadding = (northEast[1] - southWest[1]) * factor;
+
+  return [
+    [southWest[0] - latPadding, southWest[1] - lonPadding],
+    [northEast[0] + latPadding, northEast[1] + lonPadding],
+  ];
+};
+
 const getYmapsApi = () => window.ymaps;
 
 const loadYandexMaps = async (apiKey: string) => {
@@ -128,23 +140,47 @@ export const MapView = () => {
         const oblastBounds = oblastBorder.geometry?.getBounds();
 
         if (oblastBounds) {
-          map.setBounds(oblastBounds, {
+          await map.setBounds(oblastBounds, {
             checkZoomRange: true,
+            duration: 0,
             zoomMargin: [24],
           });
+
+          if (isCancelled) {
+            return;
+          }
+
+          map.options.set({
+            minZoom: map.getZoom(),
+            restrictMapArea: expandBounds(map.getBounds(), 0.02),
+          });
         }
+
+        const clustererOptions: ymaps.IClustererOptions &
+          ymaps.IClusterPlacemarkOptionsWithClusterPrefix = {
+          clusterDisableClickZoom: false,
+          clusterHideIconOnBalloonOpen: false,
+          clusterIconColor: TULA_OBLAST_BORDER_COLOR,
+          gridSize: 80,
+          groupByCoordinates: false,
+          hasBalloon: true,
+          minClusterSize: 2,
+        };
+        const clusterer = new ymapsApi.Clusterer(clustererOptions);
+        const placemarks: ymaps.Placemark[] = [];
 
         for (const object of constructionObjects) {
           if (object.latitude === null || object.longitude === null) {
             continue;
           }
 
-          map.geoObjects.add(
+          placemarks.push(
             new ymapsApi.Placemark(
               [object.latitude, object.longitude],
               {
                 balloonContentHeader: object.name,
                 balloonContentBody: `${object.address}<br/>${statusLabels[object.status]}`,
+                clusterCaption: object.name,
               },
               {
                 preset: "islands#dotIcon",
@@ -153,6 +189,9 @@ export const MapView = () => {
             ),
           );
         }
+
+        clusterer.add(placemarks);
+        map.geoObjects.add(clusterer as unknown as ymaps.IGeoObject);
       } catch (error) {
         if (!isCancelled) {
           setErrorMessage(
