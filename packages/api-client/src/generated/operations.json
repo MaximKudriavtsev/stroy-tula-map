@@ -1,0 +1,474 @@
+[
+  {
+    "operationId": "login",
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "feature": "F01",
+    "permission": null,
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "logout",
+    "method": "POST",
+    "path": "/api/v1/auth/logout",
+    "feature": "F01",
+    "permission": null,
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "me",
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "feature": "F01",
+    "permission": null,
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "listPublicObjects",
+    "method": "GET",
+    "path": "/api/v1/public/objects",
+    "feature": "F03",
+    "permission": null,
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "getPublicMap",
+    "method": "GET",
+    "path": "/api/v1/public/map",
+    "feature": "F03",
+    "permission": null,
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "getPublicObject",
+    "method": "GET",
+    "path": "/api/v1/public/objects/{id}",
+    "feature": "F03",
+    "permission": null,
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "listAdminObjects",
+    "method": "GET",
+    "path": "/api/v1/admin/objects",
+    "feature": "F03",
+    "permission": "objects.read",
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "getAdminObject",
+    "method": "GET",
+    "path": "/api/v1/admin/objects/{id}",
+    "feature": "F03",
+    "permission": "objects.read",
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "createAdminObject",
+    "method": "POST",
+    "path": "/api/v1/admin/objects",
+    "feature": "F03",
+    "permission": "objects.write",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "patchAdminObject",
+    "method": "PATCH",
+    "path": "/api/v1/admin/objects/{id}",
+    "feature": "F03",
+    "permission": "objects.write",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "publishAdminObject",
+    "method": "POST",
+    "path": "/api/v1/admin/objects/{id}/publish",
+    "feature": "F03",
+    "permission": "objects.publish",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "archiveAdminObject",
+    "method": "POST",
+    "path": "/api/v1/admin/objects/{id}/archive",
+    "feature": "F03",
+    "permission": "objects.archive",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "createImport",
+    "method": "POST",
+    "path": "/api/v1/admin/imports",
+    "feature": "F04",
+    "permission": "imports.write",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "getImport",
+    "method": "GET",
+    "path": "/api/v1/admin/imports/{id}",
+    "feature": "F04",
+    "permission": "imports.write",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "commitImport",
+    "method": "POST",
+    "path": "/api/v1/admin/imports/{id}/commit",
+    "feature": "F04",
+    "permission": "imports.write",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "createAsset",
+    "method": "POST",
+    "path": "/api/v1/admin/assets",
+    "feature": "F02",
+    "permission": "assets.write",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "completeAsset",
+    "method": "POST",
+    "path": "/api/v1/admin/assets/{id}/complete",
+    "feature": "F02",
+    "permission": "assets.write",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "getAssetAccess",
+    "method": "GET",
+    "path": "/api/v1/admin/assets/{id}/access",
+    "feature": "F02",
+    "permission": "assets.read",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "listPublicObjectEvents",
+    "method": "GET",
+    "path": "/api/v1/public/objects/{id}/events",
+    "feature": "F08",
+    "permission": null,
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "listPublicTimeline",
+    "method": "GET",
+    "path": "/api/v1/public/timeline",
+    "feature": "F08",
+    "permission": null,
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "createAdminObjectEvent",
+    "method": "POST",
+    "path": "/api/v1/admin/objects/{id}/events",
+    "feature": "F08",
+    "permission": "objects.write",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "patchAdminObjectEvent",
+    "method": "PATCH",
+    "path": "/api/v1/admin/objects/{id}/events/{eventId}",
+    "feature": "F08",
+    "permission": "objects.write",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "listPublicMetrics",
+    "method": "GET",
+    "path": "/api/v1/public/metrics",
+    "feature": "F09",
+    "permission": null,
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "listPublicObjectBenefits",
+    "method": "GET",
+    "path": "/api/v1/public/objects/{id}/benefits",
+    "feature": "F09",
+    "permission": null,
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "createAdminObjectMetric",
+    "method": "POST",
+    "path": "/api/v1/admin/objects/{id}/metrics",
+    "feature": "F09",
+    "permission": "objects.write",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "patchAdminObjectMetric",
+    "method": "PATCH",
+    "path": "/api/v1/admin/objects/{id}/metrics/{metricId}",
+    "feature": "F09",
+    "permission": "objects.write",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "listAdminAppeals",
+    "method": "GET",
+    "path": "/api/v1/admin/appeals",
+    "feature": "F10",
+    "permission": "appeals.read",
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "getAdminAppeal",
+    "method": "GET",
+    "path": "/api/v1/admin/appeals/{id}",
+    "feature": "F10",
+    "permission": "appeals.read",
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "replyAdminAppeal",
+    "method": "POST",
+    "path": "/api/v1/admin/appeals/{id}/replies",
+    "feature": "F10",
+    "permission": "appeals.reply",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "listAdminTasks",
+    "method": "GET",
+    "path": "/api/v1/admin/tasks",
+    "feature": "F10",
+    "permission": "tasks.read",
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "getAdminTask",
+    "method": "GET",
+    "path": "/api/v1/admin/tasks/{id}",
+    "feature": "F10",
+    "permission": "tasks.read",
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "createAdminTask",
+    "method": "POST",
+    "path": "/api/v1/admin/tasks",
+    "feature": "F10",
+    "permission": "tasks.update",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "patchAdminTask",
+    "method": "PATCH",
+    "path": "/api/v1/admin/tasks/{id}",
+    "feature": "F10",
+    "permission": "tasks.update",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "transitionAdminTask",
+    "method": "POST",
+    "path": "/api/v1/admin/tasks/{id}/transitions",
+    "feature": "F10",
+    "permission": "tasks.transition",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "linkAdminTaskAppeals",
+    "method": "POST",
+    "path": "/api/v1/admin/tasks/{id}/appeals",
+    "feature": "F10",
+    "permission": "appeals.link",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "commentAdminTask",
+    "method": "POST",
+    "path": "/api/v1/admin/tasks/{id}/comments",
+    "feature": "F10",
+    "permission": "tasks.update",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "requestAppealAnalysis",
+    "method": "POST",
+    "path": "/api/v1/admin/appeals/{id}/analysis",
+    "feature": "F14",
+    "permission": "analysis.review",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "getAppealAnalysis",
+    "method": "GET",
+    "path": "/api/v1/admin/appeals/{id}/analysis",
+    "feature": "F14",
+    "permission": "appeals.read",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "reviewAppealAnalysis",
+    "method": "POST",
+    "path": "/api/v1/admin/appeals/{id}/analysis/review",
+    "feature": "F14",
+    "permission": "analysis.review",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "listAppealCandidates",
+    "method": "GET",
+    "path": "/api/v1/admin/appeals/{id}/candidates",
+    "feature": "F15",
+    "permission": "appeals.read",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "getTaskPriority",
+    "method": "GET",
+    "path": "/api/v1/admin/tasks/{id}/priority",
+    "feature": "F15",
+    "permission": "tasks.read",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "setTaskPriority",
+    "method": "POST",
+    "path": "/api/v1/admin/tasks/{id}/priority",
+    "feature": "F15",
+    "permission": "tasks.update",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "mergeAdminTask",
+    "method": "POST",
+    "path": "/api/v1/admin/tasks/{id}/merge",
+    "feature": "F15",
+    "permission": "tasks.merge",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "maxWebhook",
+    "method": "POST",
+    "path": "/api/v1/integrations/max/webhook",
+    "feature": "F12",
+    "permission": null,
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "createDevBotSession",
+    "method": "POST",
+    "path": "/api/v1/dev/bot/sessions",
+    "feature": "F11",
+    "permission": null,
+    "availability": "dev-only"
+  },
+  {
+    "operationId": "postDevBotInput",
+    "method": "POST",
+    "path": "/api/v1/dev/bot/sessions/{id}/inputs",
+    "feature": "F11",
+    "permission": null,
+    "availability": "dev-only"
+  },
+  {
+    "operationId": "listPublicSurveys",
+    "method": "GET",
+    "path": "/api/v1/public/surveys",
+    "feature": "F16",
+    "permission": null,
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "getMunicipalitySummary",
+    "method": "GET",
+    "path": "/api/v1/public/municipalities/{id}/summary",
+    "feature": "F20",
+    "permission": null,
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "getObjectIsochrones",
+    "method": "GET",
+    "path": "/api/v1/public/objects/{id}/isochrones",
+    "feature": "F21",
+    "permission": null,
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "getObjectContracts",
+    "method": "GET",
+    "path": "/api/v1/public/objects/{id}/contracts",
+    "feature": "F22",
+    "permission": null,
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "getObjectCameras",
+    "method": "GET",
+    "path": "/api/v1/public/objects/{id}/cameras",
+    "feature": "F23",
+    "permission": null,
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "getAppealPos",
+    "method": "GET",
+    "path": "/api/v1/admin/appeals/{id}/pos",
+    "feature": "F24",
+    "permission": "appeals.read",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "exportAppealPos",
+    "method": "POST",
+    "path": "/api/v1/admin/appeals/{id}/pos/export",
+    "feature": "F24",
+    "permission": "appeals.reply",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "posWebhook",
+    "method": "POST",
+    "path": "/api/v1/integrations/pos/webhook",
+    "feature": "F24",
+    "permission": null,
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "createResidentConfirmation",
+    "method": "POST",
+    "path": "/api/v1/internal/resident-confirmations",
+    "feature": "F25",
+    "permission": null,
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "healthLive",
+    "method": "GET",
+    "path": "/health/live",
+    "feature": "F00",
+    "permission": null,
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "healthReady",
+    "method": "GET",
+    "path": "/health/ready",
+    "feature": "F00",
+    "permission": null,
+    "availability": "foundation-mock"
+  },
+  {
+    "operationId": "listAdminIntegrations",
+    "method": "GET",
+    "path": "/api/v1/admin/integrations",
+    "feature": "F12",
+    "permission": "integrations.read",
+    "availability": "not-implemented"
+  },
+  {
+    "operationId": "retryNotification",
+    "method": "POST",
+    "path": "/api/v1/admin/notifications/{id}/retry",
+    "feature": "F12",
+    "permission": "integrations.retry",
+    "availability": "not-implemented"
+  }
+]

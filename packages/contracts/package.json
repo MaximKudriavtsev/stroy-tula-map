@@ -1,0 +1,23 @@
+{
+  "name": "@tula/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./openapi/v1.json": "./openapi/v1.json"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "zod": "^3.24.2",
+    "zod-to-json-schema": "^3.24.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}
