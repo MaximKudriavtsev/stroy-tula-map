@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Feature } from "@yandex/ymaps3-clusterer";
+import type { LngLat, LngLatBounds, YMap } from "@yandex/ymaps3-types";
 import {
   constructionObjects,
   statusLabels,
@@ -8,18 +10,17 @@ import {
 } from "@/data/objects";
 import { tulaOblastBoundary } from "@/data/tula-oblast-boundary";
 
-const TULA_OBLAST_CENTER: [number, number] = [53.92, 37.62];
-const TULA_OBLAST_ZOOM = 8;
 const TULA_OBLAST_BORDER_COLOR = "#FF2E00";
-const TULA_OBLAST_OUTSIDE_FILL = "#0B1220";
+const TULA_OBLAST_OUTSIDE_FILL = "rgba(11, 18, 32, 0.42)";
+const CLUSTER_SOURCE = "clusterer-source";
 
-/** Внешнее кольцо на весь мир: внутри него вырезается Тульская область. */
-const WORLD_OUTER_RING: number[][] = [
-  [85, -179.99],
-  [85, 179.99],
-  [-85, 179.99],
-  [-85, -179.99],
-  [85, -179.99],
+/** Внешнее кольцо на весь мир: внутри него вырезается Тульская область. [lng, lat] */
+const WORLD_OUTER_RING: LngLat[] = [
+  [-179.99, 85],
+  [179.99, 85],
+  [179.99, -85],
+  [-179.99, -85],
+  [-179.99, 85],
 ];
 
 const markerColorByStatus: Record<ConstructionStatus, string> = {
@@ -28,25 +29,47 @@ const markerColorByStatus: Record<ConstructionStatus, string> = {
   completed: "#16a34a",
 };
 
-const expandBounds = (bounds: number[][], factor: number): number[][] => {
+/** Граница хранится как [широта, долгота] (формат v2) — переводим в [lng, lat]. */
+const toLngLat = ([lat, lng]: number[]): LngLat => [lng, lat];
+
+const toLngLatRing = (ring: number[][]): LngLat[] => ring.map(toLngLat);
+
+const expandBounds = (bounds: LngLatBounds, factor: number): LngLatBounds => {
   const southWest = bounds[0];
   const northEast = bounds[1];
-  const latPadding = (northEast[0] - southWest[0]) * factor;
-  const lonPadding = (northEast[1] - southWest[1]) * factor;
+  const lngPadding = (northEast[0] - southWest[0]) * factor;
+  const latPadding = (northEast[1] - southWest[1]) * factor;
 
   return [
-    [southWest[0] - latPadding, southWest[1] - lonPadding],
-    [northEast[0] + latPadding, northEast[1] + lonPadding],
+    [southWest[0] - lngPadding, southWest[1] - latPadding],
+    [northEast[0] + lngPadding, northEast[1] + latPadding],
   ];
 };
 
-const getYmapsApi = () => window.ymaps;
+const getBoundsFromCoordinates = (coordinates: LngLat[]): LngLatBounds => {
+  let minLng = Infinity;
+  let minLat = Infinity;
+  let maxLng = -Infinity;
+  let maxLat = -Infinity;
+
+  for (const [lng, lat] of coordinates) {
+    minLng = Math.min(minLng, lng);
+    maxLng = Math.max(maxLng, lng);
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+  }
+
+  return [
+    [minLng, minLat],
+    [maxLng, maxLat],
+  ];
+};
 
 const loadYandexMaps = async (apiKey: string) => {
-  if (!getYmapsApi()) {
+  if (!window.ymaps3) {
     await new Promise<void>((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = `https://api-maps.yandex.ru/2.1/?apikey=${encodeURIComponent(apiKey)}&lang=ru_RU`;
+      script.src = `https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(apiKey)}&lang=ru_RU`;
       script.async = true;
       script.onload = () => resolve();
       script.onerror = () => {
@@ -56,142 +79,243 @@ const loadYandexMaps = async (apiKey: string) => {
     });
   }
 
-  const api = getYmapsApi();
-
-  if (!api) {
+  if (!window.ymaps3) {
     throw new Error("API Яндекс Карт не инициализировался");
   }
 
-  await new Promise<void>((resolve) => {
-    api.ready(() => resolve());
-  });
+  await ymaps3.ready;
 
-  return api;
+  ymaps3.import.registerCdn("https://cdn.jsdelivr.net/npm/{package}", [
+    "@yandex/ymaps3-default-ui-theme@0.0",
+    "@yandex/ymaps3-clusterer@0.0",
+  ]);
+
+  return ymaps3;
+};
+
+const createClusterElement = (count: number) => {
+  const element = document.createElement("div");
+  element.style.cssText = [
+    "display:flex",
+    "align-items:center",
+    "justify-content:center",
+    "width:40px",
+    "height:40px",
+    "border-radius:50%",
+    `background:${TULA_OBLAST_BORDER_COLOR}`,
+    "color:#fff",
+    "font:600 13px/1 system-ui,sans-serif",
+    "box-shadow:0 2px 8px rgba(0,0,0,0.25)",
+    "transform:translate(-50%,-50%)",
+    "cursor:pointer",
+    "user-select:none",
+  ].join(";");
+  element.textContent = String(count);
+  return element;
+};
+
+const createPopupContent = (name: string, address: string, status: string) => {
+  const content = document.createElement("div");
+  content.style.cssText = "min-width:180px;max-width:260px;font:14px/1.4 system-ui,sans-serif";
+  content.innerHTML = `<strong>${name}</strong><br/>${address}<br/>${status}`;
+  return content;
 };
 
 export const MapView = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const apiKey = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    apiKey ? null : "Не задан NEXT_PUBLIC_YANDEX_MAPS_API_KEY",
+  );
 
   useEffect(() => {
     const container = containerRef.current;
-    const apiKey = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
 
-    if (!container) {
-      return;
-    }
-
-    if (!apiKey) {
-      setErrorMessage("Не задан NEXT_PUBLIC_YANDEX_MAPS_API_KEY");
+    if (!container || !apiKey) {
       return;
     }
 
     let isCancelled = false;
-    let map: ymaps.Map | undefined;
+    let map: YMap | undefined;
 
     const setupMap = async () => {
       try {
-        const ymapsApi = await loadYandexMaps(apiKey);
+        const api = await loadYandexMaps(apiKey);
 
         if (isCancelled || !containerRef.current) {
           return;
         }
 
-        map = new ymapsApi.Map(containerRef.current, {
-          center: TULA_OBLAST_CENTER,
-          zoom: TULA_OBLAST_ZOOM,
-          controls: ["zoomControl", "geolocationControl"],
-        });
+        const {
+          YMap,
+          YMapDefaultSchemeLayer,
+          YMapDefaultFeaturesLayer,
+          YMapFeature,
+          YMapMarker,
+          YMapControls,
+          YMapFeatureDataSource,
+          YMapLayer,
+        } = api;
 
-        const oblastMask = new ymapsApi.Polygon(
-          [WORLD_OUTER_RING, ...tulaOblastBoundary],
-          {},
-          {
-            coordRendering: "straightPath",
-            fillColor: TULA_OBLAST_OUTSIDE_FILL,
-            fillOpacity: 0.42,
-            interactivityModel: "default#silent",
-            strokeWidth: 0,
-            zIndex: 0,
-          } as ymaps.IPolygonOptions & {
-            coordRendering: "straightPath";
-          },
-        );
-        oblastMask.geometry?.setFillRule("evenOdd");
+        const [{ YMapClusterer, clusterByGrid }, theme] = await Promise.all([
+          api.import("@yandex/ymaps3-clusterer") as Promise<
+            typeof import("@yandex/ymaps3-clusterer")
+          >,
+          api.import("@yandex/ymaps3-default-ui-theme") as Promise<
+            typeof import("@yandex/ymaps3-default-ui-theme")
+          >,
+        ]);
 
-        const oblastBorder = new ymapsApi.Polygon(
-          tulaOblastBoundary,
-          {
-            hintContent: "Тульская область",
-          },
-          {
-            fill: false,
-            interactivityModel: "default#silent",
-            strokeColor: ["#FFFFFF", TULA_OBLAST_BORDER_COLOR],
-            strokeOpacity: [0.95, 1],
-            strokeWidth: [8, 4],
-            zIndex: 1,
-          },
-        );
+        const { YMapDefaultMarker, YMapZoomControl, YMapGeolocationControl } =
+          theme;
 
-        map.geoObjects.add(oblastMask);
-        map.geoObjects.add(oblastBorder);
-
-        const oblastBounds = oblastBorder.geometry?.getBounds();
-
-        if (oblastBounds) {
-          await map.setBounds(oblastBounds, {
-            checkZoomRange: true,
-            duration: 0,
-            zoomMargin: [24],
-          });
-
-          if (isCancelled) {
-            return;
-          }
-
-          map.options.set({
-            minZoom: map.getZoom(),
-            restrictMapArea: expandBounds(map.getBounds(), 0.02),
-          });
+        if (isCancelled || !containerRef.current) {
+          return;
         }
 
-        const clustererOptions: ymaps.IClustererOptions &
-          ymaps.IClusterPlacemarkOptionsWithClusterPrefix = {
-          clusterDisableClickZoom: false,
-          clusterHideIconOnBalloonOpen: false,
-          clusterIconColor: TULA_OBLAST_BORDER_COLOR,
-          gridSize: 80,
-          groupByCoordinates: false,
-          hasBalloon: true,
-          minClusterSize: 2,
-        };
-        const clusterer = new ymapsApi.Clusterer(clustererOptions);
-        const placemarks: ymaps.Placemark[] = [];
+        const oblastRings = tulaOblastBoundary.map(toLngLatRing);
+        const oblastBounds = getBoundsFromCoordinates(oblastRings.flat());
+
+        map = new YMap(containerRef.current, {
+          location: {
+            bounds: oblastBounds,
+          },
+          margin: [24, 24, 24, 24],
+        });
+
+        map
+          .addChild(new YMapDefaultSchemeLayer({}))
+          .addChild(new YMapDefaultFeaturesLayer({}))
+          .addChild(new YMapFeatureDataSource({ id: CLUSTER_SOURCE }))
+          .addChild(
+            new YMapLayer({
+              source: CLUSTER_SOURCE,
+              type: "markers",
+              zIndex: 1800,
+            }),
+          );
+
+        map.addChild(
+          new YMapFeature({
+            id: "oblast-mask",
+            geometry: {
+              type: "Polygon",
+              coordinates: [WORLD_OUTER_RING, ...oblastRings],
+            },
+            style: {
+              fill: TULA_OBLAST_OUTSIDE_FILL,
+              fillRule: "evenodd",
+              stroke: [],
+              simplificationRate: 0,
+              interactive: false,
+              zIndex: 0,
+            },
+          }),
+        );
+
+        map.addChild(
+          new YMapFeature({
+            id: "oblast-border",
+            geometry: {
+              type: "Polygon",
+              coordinates: oblastRings,
+            },
+            style: {
+              fill: "rgba(0,0,0,0)",
+              stroke: [
+                { width: 8, color: "#FFFFFF", opacity: 0.95 },
+                { width: 4, color: TULA_OBLAST_BORDER_COLOR },
+              ],
+              simplificationRate: 0,
+              interactive: false,
+              zIndex: 1,
+            },
+          }),
+        );
+
+        map.update({
+          zoomRange: { min: map.zoom, max: 21 },
+          restrictMapArea: expandBounds(oblastBounds, 0.02),
+        });
+
+        map.addChild(
+          new YMapControls({ position: "right" })
+            .addChild(new YMapZoomControl({}))
+            .addChild(new YMapGeolocationControl({})),
+        );
+
+        const features: Feature[] = [];
 
         for (const object of constructionObjects) {
           if (object.latitude === null || object.longitude === null) {
             continue;
           }
 
-          placemarks.push(
-            new ymapsApi.Placemark(
-              [object.latitude, object.longitude],
-              {
-                balloonContentHeader: object.name,
-                balloonContentBody: `${object.address}<br/>${statusLabels[object.status]}`,
-                clusterCaption: object.name,
-              },
-              {
-                preset: "islands#dotIcon",
-                iconColor: markerColorByStatus[object.status],
-              },
-            ),
-          );
+          features.push({
+            type: "Feature",
+            id: object.id,
+            geometry: {
+              type: "Point",
+              coordinates: [object.longitude, object.latitude],
+            },
+            properties: {
+              name: object.name,
+              address: object.address,
+              status: object.status,
+            },
+          });
         }
 
-        clusterer.add(placemarks);
-        map.geoObjects.add(clusterer as unknown as ymaps.IGeoObject);
+        const marker = (feature: Feature) => {
+          const status = feature.properties?.status as ConstructionStatus;
+          const name = String(feature.properties?.name ?? "");
+          const address = String(feature.properties?.address ?? "");
+          const color = markerColorByStatus[status] ?? markerColorByStatus.planned;
+
+          return new YMapDefaultMarker({
+            coordinates: feature.geometry.coordinates,
+            source: CLUSTER_SOURCE,
+            color: { day: color, night: color },
+            size: "small",
+            title: name,
+            subtitle: `${address} · ${statusLabels[status]}`,
+            popup: {
+              content: () =>
+                createPopupContent(name, address, statusLabels[status]),
+              position: "top",
+            },
+          });
+        };
+
+        const cluster = (coordinates: LngLat, clusterFeatures: Feature[]) =>
+          new YMapMarker(
+            {
+              coordinates,
+              source: CLUSTER_SOURCE,
+              onClick() {
+                if (!map) {
+                  return;
+                }
+
+                map.setLocation({
+                  bounds: getBoundsFromCoordinates(
+                    clusterFeatures.map((item) => item.geometry.coordinates),
+                  ),
+                  duration: 400,
+                });
+              },
+            },
+            createClusterElement(clusterFeatures.length),
+          );
+
+        map.addChild(
+          new YMapClusterer({
+            method: clusterByGrid({ gridSize: 80 }),
+            features,
+            marker,
+            cluster,
+          }),
+        );
       } catch (error) {
         if (!isCancelled) {
           setErrorMessage(
@@ -209,7 +333,7 @@ export const MapView = () => {
       isCancelled = true;
       map?.destroy();
     };
-  }, []);
+  }, [apiKey]);
 
   if (errorMessage) {
     return (

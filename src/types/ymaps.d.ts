@@ -1,9 +1,9 @@
-/// <reference types="yandex-maps" />
+/// <reference types="@yandex/ymaps3-types" />
 
 export {};
 
 declare global {
   interface Window {
-    ymaps?: typeof ymaps;
+    ymaps3?: typeof ymaps3;
   }
 }
