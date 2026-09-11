@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: "Карта строительства Тульской области",
   description:
     "Интерактивный портал строительства Тульской области. Каркас проекта.",
+  referrer: "origin-when-cross-origin",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
