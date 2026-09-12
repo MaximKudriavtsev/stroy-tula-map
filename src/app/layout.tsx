@@ -4,6 +4,7 @@ import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -15,8 +16,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ru" className={`${inter.className} h-full antialiased`}>
-      <body className="h-full overflow-hidden">{children}</body>
+    <html
+      lang="ru"
+      className={`${inter.variable} ${inter.className} h-full antialiased`}
+    >
+      <body className="h-full overflow-hidden bg-background font-sans text-on-background">
+        {children}
+      </body>
     </html>
   );
 }

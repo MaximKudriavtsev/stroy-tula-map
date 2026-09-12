@@ -1,16 +1,27 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import type { Feature } from "@yandex/ymaps3-clusterer";
 import type { LngLat, LngLatBounds, YMap } from "@yandex/ymaps3-types";
+import { ObjectInfoChip } from "@/components/object-info-chip";
+import { ObjectCategory } from "@/data/object-categories";
 import {
   constructionObjects,
-  statusLabels,
-  type ConstructionStatus,
+  type ConstructionObject,
 } from "@/data/objects";
 import { tulaOblastBoundary } from "@/data/tula-oblast-boundary";
+import { clusterByRectGrid } from "@/lib/cluster-by-rect-grid";
+import {
+  buildStatusForObject,
+  inferObjectCategory,
+  progressForObject,
+} from "@/lib/object-chip";
 
-const TULA_OBLAST_BORDER_COLOR = "#FF2E00";
+/** Размер маркера ≈ 224×130: ячейка шире по X, уже по Y. */
+const CLUSTER_GRID = { gridWidth: 240, gridHeight: 130 };
+
+const TULA_OBLAST_BORDER_COLOR = "#B84A39";
 const TULA_OBLAST_OUTSIDE_FILL = "rgba(11, 18, 32, 0.42)";
 const CLUSTER_SOURCE = "clusterer-source";
 
@@ -22,12 +33,6 @@ const WORLD_OUTER_RING: LngLat[] = [
   [-179.99, -85],
   [-179.99, 85],
 ];
-
-const markerColorByStatus: Record<ConstructionStatus, string> = {
-  planned: "#64748b",
-  in_progress: "#d97706",
-  completed: "#16a34a",
-};
 
 /** Граница хранится как [широта, долгота] (формат v2) — переводим в [lng, lat]. */
 const toLngLat = ([lat, lng]: number[]): LngLat => [lng, lat];
@@ -114,19 +119,111 @@ const createClusterElement = (count: number) => {
   return element;
 };
 
-const createPopupContent = (name: string, address: string, status: string) => {
-  const content = document.createElement("div");
-  content.style.cssText = "min-width:180px;max-width:260px;font:14px/1.4 system-ui,sans-serif";
-  content.innerHTML = `<strong>${name}</strong><br/>${address}<br/>${status}`;
-  return content;
+const createObjectChipMarker = (
+  object: ConstructionObject,
+  roots: Root[],
+  onSelect?: (object: ConstructionObject) => void,
+) => {
+  const progress = progressForObject(object);
+  const element = document.createElement("div");
+  element.style.cssText =
+    "transform:translate(-50%,calc(-100% - 6px));pointer-events:auto;cursor:pointer;filter:drop-shadow(0 4px 16px rgb(108 88 76 / 0.08));";
+  element.addEventListener("click", (event) => {
+    event.stopPropagation();
+    onSelect?.(object);
+  });
+
+  const root = createRoot(element);
+  roots.push(root);
+  root.render(
+    <ObjectInfoChip
+      category={inferObjectCategory(object.name)}
+      name={object.name}
+      progress={progress}
+      status={buildStatusForObject(object, progress)}
+    />,
+  );
+
+  return element;
 };
 
-export const MapView = () => {
+const buildMapFeatures = (): Feature[] => {
+  const features: Feature[] = [];
+
+  for (const object of constructionObjects) {
+    if (object.latitude === null || object.longitude === null) {
+      continue;
+    }
+
+    features.push({
+      type: "Feature",
+      id: object.id,
+      geometry: {
+        type: "Point",
+        coordinates: [object.longitude, object.latitude],
+      },
+      properties: {
+        objectId: object.id,
+        name: object.name,
+        category: inferObjectCategory(object.name),
+      },
+    });
+  }
+
+  return features;
+};
+
+const filterMapFeatures = (
+  features: Feature[],
+  category: ObjectCategory,
+  searchQuery: string,
+) => {
+  const normalizedQuery = searchQuery.trim().toLocaleLowerCase("ru");
+
+  return features.filter((feature) => {
+    if (
+      category !== ObjectCategory.All &&
+      feature.properties?.category !== category
+    ) {
+      return false;
+    }
+
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    const name = String(feature.properties?.name ?? "").toLocaleLowerCase("ru");
+    return name.includes(normalizedQuery);
+  });
+};
+
+type MapViewProps = {
+  category?: ObjectCategory;
+  searchQuery?: string;
+  onObjectSelect?: (object: ConstructionObject) => void;
+};
+
+export const MapView = ({
+  category = ObjectCategory.All,
+  searchQuery = "",
+  onObjectSelect,
+}: MapViewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const categoryRef = useRef(category);
+  const searchQueryRef = useRef(searchQuery);
+  const onObjectSelectRef = useRef(onObjectSelect);
+  const clustererRef = useRef<{ update: (props: { features: Feature[] }) => void } | null>(
+    null,
+  );
+  const allFeaturesRef = useRef<Feature[]>([]);
   const apiKey = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
   const [errorMessage, setErrorMessage] = useState<string | null>(
     apiKey ? null : "Не задан NEXT_PUBLIC_YANDEX_MAPS_API_KEY",
   );
+
+  categoryRef.current = category;
+  searchQueryRef.current = searchQuery;
+  onObjectSelectRef.current = onObjectSelect;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -137,6 +234,7 @@ export const MapView = () => {
 
     let isCancelled = false;
     let map: YMap | undefined;
+    const markerRoots: Root[] = [];
 
     const setupMap = async () => {
       try {
@@ -157,7 +255,7 @@ export const MapView = () => {
           YMapLayer,
         } = api;
 
-        const [{ YMapClusterer, clusterByGrid }, theme] = await Promise.all([
+        const [{ YMapClusterer }, theme] = await Promise.all([
           api.import("@yandex/ymaps3-clusterer") as Promise<
             typeof import("@yandex/ymaps3-clusterer")
           >,
@@ -166,8 +264,7 @@ export const MapView = () => {
           >,
         ]);
 
-        const { YMapDefaultMarker, YMapZoomControl, YMapGeolocationControl } =
-          theme;
+        const { YMapZoomControl, YMapGeolocationControl } = theme;
 
         if (isCancelled || !containerRef.current) {
           return;
@@ -244,47 +341,39 @@ export const MapView = () => {
             .addChild(new YMapGeolocationControl({})),
         );
 
-        const features: Feature[] = [];
-
-        for (const object of constructionObjects) {
-          if (object.latitude === null || object.longitude === null) {
-            continue;
-          }
-
-          features.push({
-            type: "Feature",
-            id: object.id,
-            geometry: {
-              type: "Point",
-              coordinates: [object.longitude, object.latitude],
-            },
-            properties: {
-              name: object.name,
-              address: object.address,
-              status: object.status,
-            },
-          });
-        }
+        const objectsById = new Map(
+          constructionObjects.map((object) => [object.id, object]),
+        );
+        const allFeatures = buildMapFeatures();
+        allFeaturesRef.current = allFeatures;
+        const features = filterMapFeatures(
+          allFeatures,
+          categoryRef.current,
+          searchQueryRef.current,
+        );
 
         const marker = (feature: Feature) => {
-          const status = feature.properties?.status as ConstructionStatus;
-          const name = String(feature.properties?.name ?? "");
-          const address = String(feature.properties?.address ?? "");
-          const color = markerColorByStatus[status] ?? markerColorByStatus.planned;
+          const object = objectsById.get(String(feature.id));
 
-          return new YMapDefaultMarker({
-            coordinates: feature.geometry.coordinates,
-            source: CLUSTER_SOURCE,
-            color: { day: color, night: color },
-            size: "small",
-            title: name,
-            subtitle: `${address} · ${statusLabels[status]}`,
-            popup: {
-              content: () =>
-                createPopupContent(name, address, statusLabels[status]),
-              position: "top",
+          if (!object) {
+            return new YMapMarker({
+              coordinates: feature.geometry.coordinates,
+              source: CLUSTER_SOURCE,
+            });
+          }
+
+          return new YMapMarker(
+            {
+              coordinates: feature.geometry.coordinates,
+              source: CLUSTER_SOURCE,
+              onClick() {
+                onObjectSelectRef.current?.(object);
+              },
             },
-          });
+            createObjectChipMarker(object, markerRoots, (selected) => {
+              onObjectSelectRef.current?.(selected);
+            }),
+          );
         };
 
         const cluster = (coordinates: LngLat, clusterFeatures: Feature[]) =>
@@ -308,14 +397,14 @@ export const MapView = () => {
             createClusterElement(clusterFeatures.length),
           );
 
-        map.addChild(
-          new YMapClusterer({
-            method: clusterByGrid({ gridSize: 80 }),
-            features,
-            marker,
-            cluster,
-          }),
-        );
+        const clusterer = new YMapClusterer({
+          method: clusterByRectGrid(CLUSTER_GRID),
+          features,
+          marker,
+          cluster,
+        });
+        clustererRef.current = clusterer;
+        map.addChild(clusterer);
       } catch (error) {
         if (!isCancelled) {
           setErrorMessage(
@@ -331,9 +420,28 @@ export const MapView = () => {
 
     return () => {
       isCancelled = true;
+      clustererRef.current = null;
+      markerRoots.forEach((root) => {
+        root.unmount();
+      });
       map?.destroy();
     };
   }, [apiKey]);
+
+  useEffect(() => {
+    const clusterer = clustererRef.current;
+    if (!clusterer || allFeaturesRef.current.length === 0) {
+      return;
+    }
+
+    clusterer.update({
+      features: filterMapFeatures(
+        allFeaturesRef.current,
+        category,
+        searchQuery,
+      ),
+    });
+  }, [category, searchQuery]);
 
   if (errorMessage) {
     return (
