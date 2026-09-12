@@ -114,6 +114,7 @@ export default function Home() {
       return;
     }
 
+    setIsochroneTime(null);
     setSelectedObject(object);
 
     if (isCardOpen) {
