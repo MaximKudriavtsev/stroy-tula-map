@@ -10,12 +10,14 @@ import {
 type ObjectFilterBarProps = {
   counts: Record<ObjectCategory, number>;
   value?: ObjectCategory;
+  unavailable?: ReadonlySet<ObjectCategory>;
   onChange?: (category: ObjectCategory) => void;
 };
 
 export function ObjectFilterBar({
   counts,
   value,
+  unavailable,
   onChange,
 }: ObjectFilterBarProps) {
   const [uncontrolledValue, setUncontrolledValue] = useState(
@@ -24,6 +26,10 @@ export function ObjectFilterBar({
   const selected = value ?? uncontrolledValue;
 
   const handleSelect = (category: ObjectCategory) => {
+    if (unavailable?.has(category)) {
+      return;
+    }
+
     if (value === undefined) {
       setUncontrolledValue(category);
     }
@@ -40,6 +46,7 @@ export function ObjectFilterBar({
         <ObjectFilterChip
           category={category}
           count={counts[category]}
+          disabled={unavailable?.has(category) ?? false}
           key={category}
           onSelect={handleSelect}
           selected={selected === category}

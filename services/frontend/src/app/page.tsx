@@ -10,8 +10,13 @@ import { MapSearchBar } from "@/components/map-search-bar";
 import { MapView } from "@/components/map-view";
 import { ObjectCard } from "@/components/object-card";
 import { ObjectFilterBar } from "@/components/object-filter-bar";
-import { mapModes, type MapMode } from "@/data/map-modes";
-import { ObjectCategory } from "@/data/object-categories";
+import { ProvisionLegend } from "@/components/provision-legend";
+import { isHeatmapMode, mapModes, type MapMode } from "@/data/map-modes";
+import {
+  ObjectCategory,
+  nextAvailableCategory,
+  provisionUnavailableCategories,
+} from "@/data/object-categories";
 import { constructionObjects, type ConstructionObject } from "@/data/objects";
 import { countOsmPoisByCategory, filterOsmPois, osmPois } from "@/data/osm-pois";
 import { countObjectsByCategory } from "@/lib/object-chip";
@@ -27,6 +32,14 @@ const buildingCount = constructionObjects.filter(
 
 const HUD_TRANSITION_MS = 300;
 
+const mapHintByMode: Record<MapMode, string> = {
+  objects: "Выберите объект на карте, чтобы узнать о нем подробнее",
+  coverage:
+    "Цвет показывает суммарную доступность инфраструктуры: красный — слабо, зелёный — сильно",
+  provision:
+    "Цвет сравнивает число объектов с нормативом на местное население: красный — дефицит, серый — здесь не живут",
+};
+
 export default function Home() {
   const [mapMode, setMapMode] = useState<MapMode>(mapModes.objects);
   const [category, setCategory] = useState(ObjectCategory.All);
@@ -38,7 +51,8 @@ export default function Home() {
     null,
   );
 
-  const isCoverageMode = mapMode === mapModes.coverage;
+  const isHeatmap = isHeatmapMode(mapMode);
+  const isProvisionMode = mapMode === mapModes.provision;
   const normalizedQuery = searchQuery.trim().toLocaleLowerCase("ru");
 
   const searchedObjects = normalizedQuery
@@ -49,7 +63,7 @@ export default function Home() {
 
   const searchedPois = filterOsmPois(osmPois, ObjectCategory.All, searchQuery);
 
-  const categoryCounts = isCoverageMode
+  const categoryCounts = isHeatmap
     ? countOsmPoisByCategory(searchedPois)
     : countObjectsByCategory(searchedObjects);
 
@@ -66,15 +80,15 @@ export default function Home() {
   }, [isCardOpen, selectedObject]);
 
   useEffect(() => {
-    if (!isCoverageMode) {
+    if (!isHeatmap) {
       return;
     }
 
     setIsCardOpen(false);
-  }, [isCoverageMode]);
+  }, [isHeatmap]);
 
   const handleObjectSelect = (object: ConstructionObject) => {
-    if (isCoverageMode) {
+    if (isHeatmap) {
       return;
     }
 
@@ -110,6 +124,18 @@ export default function Home() {
 
   const handleModeChange = (mode: MapMode) => {
     setMapMode(mode);
+
+    if (mode !== mapModes.provision) {
+      return;
+    }
+
+    if (!provisionUnavailableCategories.has(category)) {
+      return;
+    }
+
+    setCategory(
+      nextAvailableCategory(category, provisionUnavailableCategories),
+    );
   };
 
   return (
@@ -155,6 +181,9 @@ export default function Home() {
             <ObjectFilterBar
               counts={categoryCounts}
               onChange={setCategory}
+              unavailable={
+                isProvisionMode ? provisionUnavailableCategories : undefined
+              }
               value={category}
             />
           </div>
@@ -170,18 +199,15 @@ export default function Home() {
         }`}
         inert={isCardOpen ? true : undefined}
       >
-        {isCoverageMode ? <CoverageLegend /> : null}
-        <MapHint>
-          {isCoverageMode
-            ? "Цвет показывает суммарную доступность инфраструктуры: красный — слабо, зелёный — сильно"
-            : "Выберите объект на карте, чтобы узнать о нем подробнее"}
-        </MapHint>
+        {isProvisionMode ? <ProvisionLegend /> : null}
+        {mapMode === mapModes.coverage ? <CoverageLegend /> : null}
+        <MapHint>{mapHintByMode[mapMode]}</MapHint>
         <div className="pointer-events-auto">
           <DateSelector />
         </div>
       </div>
 
-      {selectedObject && !isCoverageMode ? (
+      {selectedObject && !isHeatmap ? (
         <ObjectCard
           isochroneActive={isochroneTime !== null}
           object={selectedObject}

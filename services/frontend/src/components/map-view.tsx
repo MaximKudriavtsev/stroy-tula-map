@@ -1,20 +1,26 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { Feature } from '@yandex/ymaps3-clusterer';
 import type { LngLat, LngLatBounds, YMap } from '@yandex/ymaps3-types';
 import { IsochroneTimeSelector } from '@/components/isochrone-time-selector';
 import type { IsochroneTime } from '@/lib/use-isochrone';
 import { ObjectInfoChip } from '@/components/object-info-chip';
-import { mapModes, type MapMode } from '@/data/map-modes';
+import { isHeatmapMode, mapModes, type MapMode } from '@/data/map-modes';
 import { ObjectCategory } from '@/data/object-categories';
 import { useIsochrone } from '@/lib/use-isochrone';
 import { constructionObjects, type ConstructionObject } from '@/data/objects';
 import { filterOsmPois, osmPois, type OsmPoi } from '@/data/osm-pois';
+import { populationHexes } from '@/data/population-grid';
 import { tulaOblastBoundary } from '@/data/tula-oblast-boundary';
 import { clusterByRectGrid } from '@/lib/cluster-by-rect-grid';
 import { drawCoverageHeatmap } from '@/lib/coverage-heatmap';
+import {
+    computeProvisionField,
+    drawProvisionHeatmap,
+    groupPoisByCategory,
+} from '@/lib/provision-field';
 import { buildStatusForObject, inferObjectCategory, progressForObject } from '@/lib/object-chip';
 
 /** Размер маркера ≈ 224×130: ячейка шире по X, уже по Y. */
@@ -236,6 +242,20 @@ export const MapView = ({
     onObjectSelectRef.current = onObjectSelect;
     coveragePoisRef.current = filterOsmPois(osmPois, category, searchQuery);
 
+    // Обеспеченность сравнивается с нормативом по каждой категории, поэтому фильтр
+    // категорий выбирает нормативы, а не подмножество POI: сузить набор объектов
+    // означало бы показать дефицит там, где объект просто отфильтрован.
+    const provisionPois = useMemo(
+        () => groupPoisByCategory(filterOsmPois(osmPois, ObjectCategory.All, searchQuery)),
+        [searchQuery]
+    );
+    const provisionPoisRef = useRef(provisionPois);
+
+    useEffect(() => {
+        provisionPoisRef.current = provisionPois;
+        redrawCoverageRef.current?.();
+    }, [provisionPois]);
+
     // Sync selectedObject prop with ref for click handlers
     useEffect(() => {
         // selectedObjectRef is intentionally not used for isochrone logic
@@ -381,7 +401,7 @@ export const MapView = ({
                 allFeaturesRef.current = allFeatures;
 
                 const resolveClusterFeatures = () => {
-                    if (modeRef.current === mapModes.coverage) {
+                    if (isHeatmapMode(modeRef.current)) {
                         return [];
                     }
 
@@ -489,7 +509,7 @@ export const MapView = ({
                         return;
                     }
 
-                    if (modeRef.current !== mapModes.coverage) {
+                    if (!isHeatmapMode(modeRef.current)) {
                         const fieldContext = fieldCanvas.getContext('2d');
                         const overlayContext = overlayCanvas.getContext('2d');
                         fieldContext?.clearRect(0, 0, fieldCanvas.width, fieldCanvas.height);
@@ -520,15 +540,40 @@ export const MapView = ({
                     fieldCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
                     overlayCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-                    const pois = coveragePoisRef.current;
-                    const filterShare = osmPois.length > 0 ? pois.length / osmPois.length : 1;
-
-                    drawCoverageHeatmap(fieldCtx, overlayCtx, pois, clipRingsRef.current, {
+                    const renderState = {
                         center: [...currentMap.center] as LngLat,
                         zoom: currentMap.zoom,
                         width: cssWidth,
                         height: cssHeight,
                         projection: currentMap.projection,
+                    };
+
+                    if (modeRef.current === mapModes.provision) {
+                        const field = computeProvisionField(
+                            populationHexes,
+                            provisionPoisRef.current,
+                            categoryRef.current,
+                            renderState
+                        );
+
+                        if (field) {
+                            drawProvisionHeatmap(
+                                fieldCtx,
+                                overlayCtx,
+                                field,
+                                clipRingsRef.current,
+                                renderState
+                            );
+                        }
+
+                        return;
+                    }
+
+                    const pois = coveragePoisRef.current;
+                    const filterShare = osmPois.length > 0 ? pois.length / osmPois.length : 1;
+
+                    drawCoverageHeatmap(fieldCtx, overlayCtx, pois, clipRingsRef.current, {
+                        ...renderState,
                         filterShare,
                     });
                 };
@@ -590,10 +635,9 @@ export const MapView = ({
             return;
         }
 
-        const features =
-            mode === mapModes.coverage
-                ? []
-                : filterMapFeatures(allFeaturesRef.current, category, searchQuery);
+        const features = isHeatmapMode(mode)
+            ? []
+            : filterMapFeatures(allFeaturesRef.current, category, searchQuery);
 
         clusterer.update({ features });
         redrawCoverageRef.current?.();
@@ -650,14 +694,14 @@ export const MapView = ({
                 ref={fieldCanvasRef}
                 style={{
                     mixBlendMode: 'multiply',
-                    opacity: mode === mapModes.coverage ? 1 : 0,
+                    opacity: isHeatmapMode(mode) ? 1 : 0,
                 }}
             />
             <canvas
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 z-[6]"
                 ref={overlayCanvasRef}
-                style={{ opacity: mode === mapModes.coverage ? 1 : 0 }}
+                style={{ opacity: isHeatmapMode(mode) ? 1 : 0 }}
             />
             {hasActiveIsochrone && isochroneTime != null && (
                 <div className="pointer-events-auto absolute bottom-20 left-1/2 z-20 -translate-x-1/2 md:bottom-28">

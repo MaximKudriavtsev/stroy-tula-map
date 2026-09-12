@@ -24,6 +24,7 @@
     "migration:show": "npm run migration:show --prefix services/backend",
     "import:places": "npm run import:places --prefix services/backend",
     "fetch:pois": "npm run fetch:pois --prefix services/frontend",
+    "fetch:population": "npm run fetch:population --prefix services/frontend",
     "docker:dev": "docker compose -f compose.yaml -f compose.dev.yaml up --build",
     "docker:prod": "docker compose -f compose.yaml -f compose.prod.yaml up --build -d",
     "docker:down": "docker compose -f compose.yaml -f compose.dev.yaml down"
