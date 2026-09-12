@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type BrandProps = {
   showTagline?: boolean;
   className?: string;
@@ -5,26 +7,14 @@ type BrandProps = {
 
 export function BrandMark() {
   return (
-    <span
+    <Image
+      alt=""
       aria-hidden="true"
-      className="flex size-xl items-center justify-center rounded-full bg-primary-container text-on-primary"
-    >
-      <svg
-        className="size-lg"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.7"
-        viewBox="0 0 24 24"
-      >
-        <path d="m11 17 2 2a1 1 0 1 0 3-3" />
-        <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.36.36a3 3 0 0 1-4.24 0l-2.06-2.06a3 3 0 0 0-4.24 0L2 10" />
-        <path d="m18 9 1.45-1.45a3 3 0 0 0 0-4.24L16.3.1a1 1 0 0 0-1.41 0" />
-        <path d="m2 15 6 6" />
-        <path d="m7 11 2.09-2.09a1 1 0 0 1 1.41 0l2.09 2.09" />
-      </svg>
-    </span>
+      className="size-xl shrink-0 rounded-full object-cover"
+      height={40}
+      src="/brand-icon.png"
+      width={40}
+    />
   );
 }
 

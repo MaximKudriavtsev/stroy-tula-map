@@ -49,35 +49,22 @@ export function ObjectCard({
   const [photoSrc, setPhotoSrc] = useState(() =>
     photoForObject(object, mapDate),
   );
-  const [collapsed, setCollapsed] = useState(false);
   const category = inferObjectCategory(object.name);
+  const collapsed = isochroneActive;
 
   useEffect(() => {
     setPhotoSrc(photoForObject(object, mapDate));
   }, [object, mapDate]);
 
-  useEffect(() => {
-    setCollapsed(false);
-  }, [object.id]);
-
-  useEffect(() => {
-    if (!open) {
-      setCollapsed(false);
-    }
-  }, [open]);
-
   const handleShowIsochrone = () => {
-    setCollapsed(true);
     onShowIsochrone();
   };
 
   const handleExpand = () => {
-    setCollapsed(false);
     onHideIsochrone();
   };
 
   const handleClose = () => {
-    setCollapsed(false);
     onHideIsochrone();
     onClose();
   };
