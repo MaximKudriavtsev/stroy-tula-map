@@ -1,0 +1,40 @@
+import type { GeoPoint, ObjectCategory } from "@/lib/create-object";
+
+/** Ответ GET /object — поля ObjectEntity */
+export type ApiObject = {
+  id: string;
+  grbs: string;
+  oksName: string;
+  category: ObjectCategory;
+  constructionStage?: string | null;
+  address?: string | null;
+  coordinates?: GeoPoint | null;
+  industry?: string | null;
+  status?: string | null;
+  ownership?: string | null;
+  amo?: string | null;
+  customer?: string | null;
+  npGpName?: string | null;
+  fpName?: string | null;
+  projectCode?: string | null;
+  totalArea?: number | null;
+  capacity?: number | null;
+  expertise?: string | null;
+  startYear?: number | null;
+  endYear?: number | null;
+  constructionPeriod?: string | null;
+  landTransferDate?: string | null;
+  constructionPermitDate?: string | null;
+  contractConclusionDate?: string | null;
+  contractPeriod?: string | null;
+  contractor?: string | null;
+  constructionReadiness?: number | null;
+  equipmentInstallationDate?: string | null;
+  hydraulicTestActDate?: string | null;
+  zosDate?: string | null;
+  zosNumber?: string | null;
+  commissioningActDate?: string | null;
+  commissioningActNumber?: string | null;
+  commissioningYear?: number | null;
+  photo?: string | null;
+};
