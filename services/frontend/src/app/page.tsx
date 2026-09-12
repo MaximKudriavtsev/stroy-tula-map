@@ -11,6 +11,7 @@ import { MapView } from "@/components/map-view";
 import { ObjectCard } from "@/components/object-card";
 import { ObjectFilterBar } from "@/components/object-filter-bar";
 import { ProvisionLegend } from "@/components/provision-legend";
+import { SplashOverlay } from "@/components/splash-overlay";
 import { DEFAULT_MAP_DATE } from "@/data/map-date";
 import { isHeatmapMode, mapModes, type MapMode } from "@/data/map-modes";
 import {
@@ -279,6 +280,8 @@ export default function Home() {
           syncTimelineToMapDate={!isCurrentMapDate}
         />
       ) : null}
+
+      <SplashOverlay />
     </div>
   );
 }
