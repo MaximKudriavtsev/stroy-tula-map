@@ -1,47 +1,61 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { objectCardPhotoSrc } from "@/components/object-card-photo";
 import type { ConstructionObject } from "@/data/objects";
 import {
+  constructionStages,
   constructionTimelineForObject,
+  resolveTimelineKey,
   stageForProgress,
   type ConstructionTimelinePoint,
 } from "@/lib/construction-progress";
 
-const SITE_PHOTOS = [
-  "Основное здание",
-  "Стройплощадка",
-  "Территория",
-] as const;
-
 type ConstructionProgressProps = {
   object: ConstructionObject;
+  mapDate?: Date | null;
+  syncToMapDate?: boolean;
+  onStagePhotoChange?: (photoSrc: string) => void;
 };
 
-export function ConstructionProgress({ object }: ConstructionProgressProps) {
+export function ConstructionProgress({
+  object,
+  mapDate = null,
+  syncToMapDate = false,
+  onStagePhotoChange,
+}: ConstructionProgressProps) {
   const points = useMemo(
     () => constructionTimelineForObject(object),
     [object],
   );
-  const [selectedKey, setSelectedKey] = useState(
-    () => points.at(-1)?.key ?? "",
+  const [selectedKey, setSelectedKey] = useState(() =>
+    resolveTimelineKey(points, syncToMapDate ? mapDate : null),
   );
 
   useEffect(() => {
     setSelectedKey(
-      constructionTimelineForObject(object).at(-1)?.key ?? "",
+      resolveTimelineKey(
+        constructionTimelineForObject(object),
+        syncToMapDate ? mapDate : null,
+      ),
     );
-  }, [object]);
+  }, [object, mapDate, syncToMapDate]);
 
   const selected =
     points.find((point) => point.key === selectedKey) ?? points.at(-1);
 
-  if (!selected) {
+  const stage = selected ? stageForProgress(selected.progress) : null;
+
+  useEffect(() => {
+    if (!stage || !onStagePhotoChange) {
+      return;
+    }
+
+    onStagePhotoChange(stage.photoSrc);
+  }, [stage, onStagePhotoChange]);
+
+  if (!selected || !stage) {
     return null;
   }
-
-  const stage = stageForProgress(selected.progress);
 
   return (
     <div className="flex flex-col gap-md">
@@ -49,7 +63,6 @@ export function ConstructionProgress({ object }: ConstructionProgressProps) {
         onSelect={setSelectedKey}
         points={points}
         selected={selected}
-        stageSummary={stage.summary}
       />
       <ReadinessSection
         progress={selected.progress}
@@ -63,12 +76,10 @@ export function ConstructionProgress({ object }: ConstructionProgressProps) {
 function ChronologySection({
   points,
   selected,
-  stageSummary,
   onSelect,
 }: {
   points: ConstructionTimelinePoint[];
   selected: ConstructionTimelinePoint;
-  stageSummary: string;
   onSelect: (key: string) => void;
 }) {
   const selectedRef = useRef<HTMLButtonElement>(null);
@@ -133,10 +144,6 @@ function ChronologySection({
           );
         })}
       </div>
-
-      <p className="type-body-sm text-on-surface-variant">
-        {selected.fullLabel}: {stageSummary}
-      </p>
     </section>
   );
 }
@@ -196,19 +203,19 @@ function SitePhotosSection({ objectName }: { objectName: string }) {
         </h3>
       </div>
 
-      <div className="grid grid-cols-3 gap-sm">
-        {SITE_PHOTOS.map((label) => (
+      <div className="grid grid-cols-2 gap-sm sm:grid-cols-3">
+        {constructionStages.map((stage) => (
           <figure
             className="relative overflow-hidden rounded-xl"
-            key={label}
+            key={stage.photoSrc}
           >
             <img
-              alt={`${objectName}: ${label}`}
+              alt={`${objectName}: ${stage.title}`}
               className="aspect-[4/5] w-full object-cover"
-              src={objectCardPhotoSrc}
+              src={stage.photoSrc}
             />
             <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-inverse-surface/90 px-sm py-sm type-body-sm text-inverse-on-surface">
-              {label}
+              {stage.title}
             </figcaption>
           </figure>
         ))}

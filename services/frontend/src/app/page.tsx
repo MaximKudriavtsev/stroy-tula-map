@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ConstructionStatusBar } from "@/components/construction-status-bar";
 import { CoverageLegend } from "@/components/coverage-legend";
 import { DateSelector } from "@/components/date-selector";
@@ -10,10 +10,22 @@ import { MapSearchBar } from "@/components/map-search-bar";
 import { MapView } from "@/components/map-view";
 import { ObjectCard } from "@/components/object-card";
 import { ObjectFilterBar } from "@/components/object-filter-bar";
-import { mapModes, type MapMode } from "@/data/map-modes";
-import { ObjectCategory } from "@/data/object-categories";
+import { ProvisionLegend } from "@/components/provision-legend";
+import { DEFAULT_MAP_DATE } from "@/data/map-date";
+import { isHeatmapMode, mapModes, type MapMode } from "@/data/map-modes";
+import {
+  ObjectCategory,
+  nextAvailableCategory,
+  provisionUnavailableCategories,
+} from "@/data/object-categories";
 import { constructionObjects, type ConstructionObject } from "@/data/objects";
 import { countOsmPoisByCategory, filterOsmPois, osmPois } from "@/data/osm-pois";
+import {
+  earliestConstructionStart,
+  hasConstructionStartedAt,
+  isSameMonth,
+  startOfMonth,
+} from "@/lib/construction-progress";
 import { countObjectsByCategory } from "@/lib/object-chip";
 import type { IsochroneTime } from "@/lib/use-isochrone";
 
@@ -26,8 +38,22 @@ const buildingCount = constructionObjects.filter(
 ).length;
 
 const HUD_TRANSITION_MS = 300;
+const MAP_NOW = startOfMonth(DEFAULT_MAP_DATE);
+
+const mapHintByMode: Record<MapMode, string> = {
+  objects: "Выберите объект на карте, чтобы узнать о нем подробнее",
+  coverage:
+    "Цвет показывает суммарную доступность инфраструктуры: красный — слабо, зелёный — сильно",
+  provision:
+    "Цвет сравнивает число объектов с нормативом на местное население: красный — дефицит, серый — здесь не живут",
+};
 
 export default function Home() {
+  const earliestDate = useMemo(
+    () => earliestConstructionStart(constructionObjects, MAP_NOW),
+    [],
+  );
+  const [mapDate, setMapDate] = useState(MAP_NOW);
   const [mapMode, setMapMode] = useState<MapMode>(mapModes.objects);
   const [category, setCategory] = useState(ObjectCategory.All);
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,7 +64,12 @@ export default function Home() {
     null,
   );
 
+  const isHeatmap = isHeatmapMode(mapMode);
+  const isProvisionMode = mapMode === mapModes.provision;
   const isCoverageMode = mapMode === mapModes.coverage;
+  const isObjectsMode = mapMode === mapModes.objects;
+  const isCurrentMapDate = isSameMonth(mapDate, MAP_NOW);
+  const showStatusBar = isCurrentMapDate && isObjectsMode;
   const normalizedQuery = searchQuery.trim().toLocaleLowerCase("ru");
 
   const searchedObjects = normalizedQuery
@@ -47,11 +78,15 @@ export default function Home() {
       )
     : constructionObjects;
 
+  const datedObjects = searchedObjects.filter((object) =>
+    hasConstructionStartedAt(object, mapDate),
+  );
+
   const searchedPois = filterOsmPois(osmPois, ObjectCategory.All, searchQuery);
 
-  const categoryCounts = isCoverageMode
+  const categoryCounts = isHeatmap
     ? countOsmPoisByCategory(searchedPois)
-    : countObjectsByCategory(searchedObjects);
+    : countObjectsByCategory(datedObjects);
 
   useEffect(() => {
     if (isCardOpen || !selectedObject) {
@@ -66,15 +101,15 @@ export default function Home() {
   }, [isCardOpen, selectedObject]);
 
   useEffect(() => {
-    if (!isCoverageMode) {
+    if (!isHeatmap) {
       return;
     }
 
     setIsCardOpen(false);
-  }, [isCoverageMode]);
+  }, [isHeatmap]);
 
   const handleObjectSelect = (object: ConstructionObject) => {
-    if (isCoverageMode) {
+    if (isHeatmap) {
       return;
     }
 
@@ -110,6 +145,18 @@ export default function Home() {
 
   const handleModeChange = (mode: MapMode) => {
     setMapMode(mode);
+
+    if (mode !== mapModes.provision) {
+      return;
+    }
+
+    if (!provisionUnavailableCategories.has(category)) {
+      return;
+    }
+
+    setCategory(
+      nextAvailableCategory(category, provisionUnavailableCategories),
+    );
   };
 
   return (
@@ -117,6 +164,7 @@ export default function Home() {
       <MapView
         category={category}
         isochroneTime={isochroneTime}
+        mapDate={mapDate}
         mode={mapMode}
         onIsochroneTimeChange={handleIsochroneTimeChange}
         onObjectSelect={handleObjectSelect}
@@ -126,7 +174,7 @@ export default function Home() {
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-margin pt-md md:px-margin-desktop">
         <div className="flex w-full flex-col items-start gap-sm">
-          <div className="flex w-full items-stretch justify-between gap-sm md:gap-md">
+          <div className="relative flex w-full items-stretch justify-between gap-sm md:gap-md">
             <div className="pointer-events-auto min-w-0">
               <MapSearchBar
                 onChange={setSearchQuery}
@@ -134,7 +182,15 @@ export default function Home() {
                 value={searchQuery}
               />
             </div>
-            <div className="pointer-events-auto flex shrink-0">
+            <div
+              aria-hidden={!showStatusBar}
+              className={`pointer-events-auto absolute inset-y-0 right-0 flex transition-[opacity,transform] duration-300 ease-out ${
+                showStatusBar
+                  ? "translate-x-0 opacity-100"
+                  : "pointer-events-none translate-x-3 opacity-0"
+              }`}
+              inert={!showStatusBar ? true : undefined}
+            >
               <ConstructionStatusBar
                 buildingCount={buildingCount}
                 openingCount={openingCount}
@@ -155,6 +211,9 @@ export default function Home() {
             <ObjectFilterBar
               counts={categoryCounts}
               onChange={setCategory}
+              unavailable={
+                isProvisionMode ? provisionUnavailableCategories : undefined
+              }
               value={category}
             />
           </div>
@@ -170,25 +229,54 @@ export default function Home() {
         }`}
         inert={isCardOpen ? true : undefined}
       >
-        {isCoverageMode ? <CoverageLegend /> : null}
-        <MapHint>
-          {isCoverageMode
-            ? "Цвет показывает суммарную доступность инфраструктуры: красный — слабо, зелёный — сильно"
-            : "Выберите объект на карте, чтобы узнать о нем подробнее"}
-        </MapHint>
-        <div className="pointer-events-auto">
-          <DateSelector />
+        <div className="relative flex w-full flex-col items-center gap-sm">
+          <div
+            aria-hidden={!isProvisionMode}
+            className={`transition-[opacity,transform] duration-300 ease-out ${
+              isProvisionMode
+                ? "relative translate-y-0 opacity-100"
+                : "pointer-events-none absolute bottom-0 translate-y-3 opacity-0"
+            }`}
+            inert={!isProvisionMode ? true : undefined}
+          >
+            <ProvisionLegend />
+          </div>
+
+          <div
+            aria-hidden={!isCoverageMode}
+            className={`transition-[opacity,transform] duration-300 ease-out ${
+              isCoverageMode
+                ? "relative translate-y-0 opacity-100"
+                : "pointer-events-none absolute bottom-0 translate-y-3 opacity-0"
+            }`}
+            inert={!isCoverageMode ? true : undefined}
+          >
+            <CoverageLegend />
+          </div>
+
+          <MapHint>{mapHintByMode[mapMode]}</MapHint>
+
+          <div className="pointer-events-auto">
+            <DateSelector
+              maxDate={MAP_NOW}
+              minDate={earliestDate}
+              onChange={setMapDate}
+              value={mapDate}
+            />
+          </div>
         </div>
       </div>
 
-      {selectedObject && !isCoverageMode ? (
+      {selectedObject && !isHeatmap ? (
         <ObjectCard
           isochroneActive={isochroneTime !== null}
+          mapDate={mapDate}
           object={selectedObject}
           onClose={handleCardClose}
           onHideIsochrone={handleHideIsochrone}
           onShowIsochrone={handleShowIsochrone}
-          open={isCardOpen}
+          open={isCardOpen && !isHeatmap}
+          syncTimelineToMapDate={!isCurrentMapDate}
         />
       ) : null}
     </div>

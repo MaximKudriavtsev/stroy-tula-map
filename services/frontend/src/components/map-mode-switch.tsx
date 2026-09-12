@@ -7,7 +7,7 @@ type MapModeSwitchProps = {
   onChange: (mode: MapMode) => void;
 };
 
-const modeOrder: MapMode[] = [mapModes.objects, mapModes.coverage];
+const modeOrder: MapMode[] = [mapModes.objects, mapModes.coverage, mapModes.provision];
 
 export const MapModeSwitch = ({ value, onChange }: MapModeSwitchProps) => {
   const handleSelect = (mode: MapMode) => {

@@ -44,7 +44,7 @@ let densityBuffer: HTMLCanvasElement | null = null;
 let fillBuffer: HTMLCanvasElement | null = null;
 let lineBuffer: HTMLCanvasElement | null = null;
 
-const metersPerPixelAt = (latitude: number, zoom: number) =>
+export const metersPerPixelAt = (latitude: number, zoom: number) =>
   (156543.03392 * Math.cos((latitude * Math.PI) / 180)) / 2 ** zoom;
 
 const worldToPixel = (world: WorldPoint, zoom: number) => {
@@ -71,7 +71,7 @@ export const lngLatToScreen = (
   };
 };
 
-const ensureCanvas = (
+export const ensureCanvas = (
   canvas: HTMLCanvasElement | null,
   width: number,
   height: number,
@@ -165,7 +165,7 @@ const getKernelSprite = (radiusPx: number, peakAlpha: number): HTMLCanvasElement
   return canvas;
 };
 
-const applyClipPath = (
+export const applyClipPath = (
   ctx: CanvasRenderingContext2D,
   clipRings: LngLat[][],
   state: CoverageRenderState,
@@ -195,7 +195,7 @@ const applyClipPath = (
   ctx.clip();
 };
 
-const strokeClipBorder = (
+export const strokeClipBorder = (
   ctx: CanvasRenderingContext2D,
   clipRings: LngLat[][],
   state: CoverageRenderState,

@@ -1,21 +1,32 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { Feature } from '@yandex/ymaps3-clusterer';
 import type { LngLat, LngLatBounds, YMap } from '@yandex/ymaps3-types';
 import { IsochroneTimeSelector } from '@/components/isochrone-time-selector';
 import type { IsochroneTime } from '@/lib/use-isochrone';
 import { ObjectInfoChip } from '@/components/object-info-chip';
-import { mapModes, type MapMode } from '@/data/map-modes';
+import { isHeatmapMode, mapModes, type MapMode } from '@/data/map-modes';
 import { ObjectCategory } from '@/data/object-categories';
 import { useIsochrone } from '@/lib/use-isochrone';
 import { constructionObjects, type ConstructionObject } from '@/data/objects';
 import { filterOsmPois, osmPois, type OsmPoi } from '@/data/osm-pois';
+import { populationHexes } from '@/data/population-grid';
 import { tulaOblastBoundary } from '@/data/tula-oblast-boundary';
 import { clusterByRectGrid } from '@/lib/cluster-by-rect-grid';
 import { drawCoverageHeatmap } from '@/lib/coverage-heatmap';
-import { buildStatusForObject, inferObjectCategory, progressForObject } from '@/lib/object-chip';
+import {
+    computeProvisionField,
+    drawProvisionHeatmap,
+    groupPoisByCategory,
+} from '@/lib/provision-field';
+import { buildStatusForProgress, inferObjectCategory } from '@/lib/object-chip';
+import {
+    hasConstructionStartedAt,
+    progressAtDate,
+} from '@/lib/construction-progress';
+import { DEFAULT_MAP_DATE } from '@/data/map-date';
 
 /** Размер маркера ≈ 224×130: ячейка шире по X, уже по Y. */
 const CLUSTER_GRID = { gridWidth: 240, gridHeight: 130 };
@@ -118,12 +129,17 @@ const createClusterElement = (count: number) => {
     return element;
 };
 
+const objectsById = new Map(
+    constructionObjects.map((object) => [object.id, object])
+);
+
 const createObjectChipMarker = (
     object: ConstructionObject,
     roots: Root[],
+    mapDateRef: { current: Date },
+    chipRenderers: Map<string, () => void>,
     onSelect?: (object: ConstructionObject) => void
 ) => {
-    const progress = progressForObject(object);
     const element = document.createElement('div');
     element.style.cssText =
         'transform:translate(-50%,calc(-100% - 6px));pointer-events:auto;cursor:pointer;filter:drop-shadow(0 4px 16px rgb(108 88 76 / 0.08));';
@@ -134,14 +150,21 @@ const createObjectChipMarker = (
 
     const root = createRoot(element);
     roots.push(root);
-    root.render(
-        <ObjectInfoChip
-            category={inferObjectCategory(object.name)}
-            name={object.name}
-            progress={progress}
-            status={buildStatusForObject(object, progress)}
-        />
-    );
+
+    const renderChip = () => {
+        const progress = progressAtDate(object, mapDateRef.current);
+        root.render(
+            <ObjectInfoChip
+                category={inferObjectCategory(object.name)}
+                name={object.name}
+                progress={progress}
+                status={buildStatusForProgress(progress)}
+            />
+        );
+    };
+
+    renderChip();
+    chipRenderers.set(object.id, renderChip);
 
     return element;
 };
@@ -172,10 +195,21 @@ const buildMapFeatures = (): Feature[] => {
     return features;
 };
 
-const filterMapFeatures = (features: Feature[], category: ObjectCategory, searchQuery: string) => {
+const filterMapFeatures = (
+    features: Feature[],
+    category: ObjectCategory,
+    searchQuery: string,
+    mapDate: Date
+) => {
     const normalizedQuery = searchQuery.trim().toLocaleLowerCase('ru');
 
     return features.filter((feature) => {
+        const object = objectsById.get(String(feature.id));
+
+        if (!object || !hasConstructionStartedAt(object, mapDate)) {
+            return false;
+        }
+
         if (category !== ObjectCategory.All && feature.properties?.category !== category) {
             return false;
         }
@@ -193,6 +227,7 @@ type MapViewProps = {
     mode?: MapMode;
     category?: ObjectCategory;
     searchQuery?: string;
+    mapDate?: Date;
     onObjectSelect?: (object: ConstructionObject) => void;
     selectedObject?: ConstructionObject | null;
     isochroneTime?: IsochroneTime | null;
@@ -203,6 +238,7 @@ export const MapView = ({
     mode = mapModes.objects,
     category = ObjectCategory.All,
     searchQuery = '',
+    mapDate = DEFAULT_MAP_DATE,
     onObjectSelect,
     selectedObject,
     isochroneTime,
@@ -214,7 +250,9 @@ export const MapView = ({
     const modeRef = useRef(mode);
     const categoryRef = useRef(category);
     const searchQueryRef = useRef(searchQuery);
+    const mapDateRef = useRef(mapDate);
     const onObjectSelectRef = useRef(onObjectSelect);
+    const chipRenderersRef = useRef(new Map<string, () => void>());
     const coveragePoisRef = useRef<OsmPoi[]>(osmPois);
     const clipRingsRef = useRef<LngLat[][]>([]);
     const clustererRef = useRef<{
@@ -233,8 +271,23 @@ export const MapView = ({
     modeRef.current = mode;
     categoryRef.current = category;
     searchQueryRef.current = searchQuery;
+    mapDateRef.current = mapDate;
     onObjectSelectRef.current = onObjectSelect;
     coveragePoisRef.current = filterOsmPois(osmPois, category, searchQuery);
+
+    // Обеспеченность сравнивается с нормативом по каждой категории, поэтому фильтр
+    // категорий выбирает нормативы, а не подмножество POI: сузить набор объектов
+    // означало бы показать дефицит там, где объект просто отфильтрован.
+    const provisionPois = useMemo(
+        () => groupPoisByCategory(filterOsmPois(osmPois, ObjectCategory.All, searchQuery)),
+        [searchQuery]
+    );
+    const provisionPoisRef = useRef(provisionPois);
+
+    useEffect(() => {
+        provisionPoisRef.current = provisionPois;
+        redrawCoverageRef.current?.();
+    }, [provisionPois]);
 
     // Sync selectedObject prop with ref for click handlers
     useEffect(() => {
@@ -374,28 +427,28 @@ export const MapView = ({
                         .addChild(new YMapGeolocationControl({}))
                 );
 
-                const objectsById = new Map(
-                    constructionObjects.map((object) => [object.id, object])
-                );
+                const objectsByIdLocal = objectsById;
                 const allFeatures = buildMapFeatures();
                 allFeaturesRef.current = allFeatures;
+                chipRenderersRef.current.clear();
 
                 const resolveClusterFeatures = () => {
-                    if (modeRef.current === mapModes.coverage) {
+                    if (isHeatmapMode(modeRef.current)) {
                         return [];
                     }
 
                     return filterMapFeatures(
                         allFeaturesRef.current,
                         categoryRef.current,
-                        searchQueryRef.current
+                        searchQueryRef.current,
+                        mapDateRef.current
                     );
                 };
 
                 const features = resolveClusterFeatures();
 
                 const marker = (feature: Feature) => {
-                    const object = objectsById.get(String(feature.id));
+                    const object = objectsByIdLocal.get(String(feature.id));
 
                     if (!object) {
                         return new YMapMarker({
@@ -419,16 +472,22 @@ export const MapView = ({
                                 onObjectSelectRef.current?.(object);
                             },
                         },
-                        createObjectChipMarker(object, markerRoots, (selected) => {
-                            if (map) {
-                                map.setLocation({
-                                    center: [selected.longitude, selected.latitude] as LngLat,
-                                    zoom: 14,
-                                    duration: 500,
-                                });
+                        createObjectChipMarker(
+                            object,
+                            markerRoots,
+                            mapDateRef,
+                            chipRenderersRef.current,
+                            (selected) => {
+                                if (map) {
+                                    map.setLocation({
+                                        center: [selected.longitude, selected.latitude] as LngLat,
+                                        zoom: 14,
+                                        duration: 500,
+                                    });
+                                }
+                                onObjectSelectRef.current?.(selected);
                             }
-                            onObjectSelectRef.current?.(selected);
-                        })
+                        )
                     );
                 };
 
@@ -489,7 +548,7 @@ export const MapView = ({
                         return;
                     }
 
-                    if (modeRef.current !== mapModes.coverage) {
+                    if (!isHeatmapMode(modeRef.current)) {
                         const fieldContext = fieldCanvas.getContext('2d');
                         const overlayContext = overlayCanvas.getContext('2d');
                         fieldContext?.clearRect(0, 0, fieldCanvas.width, fieldCanvas.height);
@@ -520,15 +579,40 @@ export const MapView = ({
                     fieldCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
                     overlayCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-                    const pois = coveragePoisRef.current;
-                    const filterShare = osmPois.length > 0 ? pois.length / osmPois.length : 1;
-
-                    drawCoverageHeatmap(fieldCtx, overlayCtx, pois, clipRingsRef.current, {
+                    const renderState = {
                         center: [...currentMap.center] as LngLat,
                         zoom: currentMap.zoom,
                         width: cssWidth,
                         height: cssHeight,
                         projection: currentMap.projection,
+                    };
+
+                    if (modeRef.current === mapModes.provision) {
+                        const field = computeProvisionField(
+                            populationHexes,
+                            provisionPoisRef.current,
+                            categoryRef.current,
+                            renderState
+                        );
+
+                        if (field) {
+                            drawProvisionHeatmap(
+                                fieldCtx,
+                                overlayCtx,
+                                field,
+                                clipRingsRef.current,
+                                renderState
+                            );
+                        }
+
+                        return;
+                    }
+
+                    const pois = coveragePoisRef.current;
+                    const filterShare = osmPois.length > 0 ? pois.length / osmPois.length : 1;
+
+                    drawCoverageHeatmap(fieldCtx, overlayCtx, pois, clipRingsRef.current, {
+                        ...renderState,
                         filterShare,
                     });
                 };
@@ -590,14 +674,24 @@ export const MapView = ({
             return;
         }
 
-        const features =
-            mode === mapModes.coverage
-                ? []
-                : filterMapFeatures(allFeaturesRef.current, category, searchQuery);
+        mapDateRef.current = mapDate;
+
+        for (const renderChip of chipRenderersRef.current.values()) {
+            renderChip();
+        }
+
+        const features = isHeatmapMode(mode)
+            ? []
+            : filterMapFeatures(
+                  allFeaturesRef.current,
+                  category,
+                  searchQuery,
+                  mapDate
+              );
 
         clusterer.update({ features });
         redrawCoverageRef.current?.();
-    }, [category, searchQuery, mode]);
+    }, [category, searchQuery, mode, mapDate]);
 
     // ---- Isochrone feature management ----
     useEffect(() => {
@@ -650,14 +744,14 @@ export const MapView = ({
                 ref={fieldCanvasRef}
                 style={{
                     mixBlendMode: 'multiply',
-                    opacity: mode === mapModes.coverage ? 1 : 0,
+                    opacity: isHeatmapMode(mode) ? 1 : 0,
                 }}
             />
             <canvas
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 z-[6]"
                 ref={overlayCanvasRef}
-                style={{ opacity: mode === mapModes.coverage ? 1 : 0 }}
+                style={{ opacity: isHeatmapMode(mode) ? 1 : 0 }}
             />
             {hasActiveIsochrone && isochroneTime != null && (
                 <div className="pointer-events-auto absolute bottom-20 left-1/2 z-20 -translate-x-1/2 md:bottom-28">

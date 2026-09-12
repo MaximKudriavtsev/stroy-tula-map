@@ -11,6 +11,7 @@ type ObjectFilterChipProps = {
   category: ObjectCategory;
   count: number;
   selected?: boolean;
+  disabled?: boolean;
   onSelect?: (category: ObjectCategory) => void;
 };
 
@@ -18,20 +19,34 @@ export function ObjectFilterChip({
   category,
   count,
   selected = false,
+  disabled = false,
   onSelect,
 }: ObjectFilterChipProps) {
   const label = objectCategoryLabels[category];
 
+  const handleClick = () => {
+    if (disabled) {
+      return;
+    }
+
+    onSelect?.(category);
+  };
+
+  const selectedClass =
+    "inline-flex shrink-0 cursor-pointer items-center gap-xs rounded-full bg-primary-container px-md py-sm type-label-md text-on-primary transition-colors hover:bg-primary";
+  const idleClass =
+    "inline-flex shrink-0 cursor-pointer items-center gap-xs rounded-full border border-outline-variant bg-surface-container-lowest px-md py-sm type-label-md text-on-surface shadow-panel transition-colors hover:border-primary hover:bg-on-primary-container";
+  const disabledClass =
+    "inline-flex shrink-0 cursor-not-allowed items-center gap-xs rounded-full border border-outline-variant bg-surface-container-lowest px-md py-sm type-label-md text-on-surface-variant opacity-50 shadow-panel";
+
   return (
     <button
+      aria-disabled={disabled}
       aria-label={`${label}, ${count}`}
       aria-pressed={selected}
-      className={
-        selected
-          ? "inline-flex shrink-0 cursor-pointer items-center gap-xs rounded-full bg-primary-container px-md py-sm type-label-md text-on-primary transition-colors hover:bg-primary"
-          : "inline-flex shrink-0 cursor-pointer items-center gap-xs rounded-full border border-outline-variant bg-surface-container-lowest px-md py-sm type-label-md text-on-surface shadow-panel transition-colors hover:border-primary hover:bg-on-primary-container"
-      }
-      onClick={() => onSelect?.(category)}
+      className={disabled ? disabledClass : selected ? selectedClass : idleClass}
+      disabled={disabled}
+      onClick={handleClick}
       type="button"
     >
       <CategoryIcon

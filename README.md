@@ -54,6 +54,7 @@ npm run docker:down
 | `migration:generate` / `migration:run` / `migration:revert` / `migration:show` | Миграции TypeORM |
 | `import:places` | Импорт `services/backend/places.csv` через API (`API_URL`, по умолчанию `http://localhost:4000`) |
 | `fetch:pois` | Обновление данных OSM для карты |
+| `fetch:population` | Обновление сетки населения для режима «Обеспеченность» |
 | `docker:dev` / `docker:prod` / `docker:down` | Работа с compose |
 
 Документация по каждой части — в `services/frontend/README.md` и `services/backend/README.md`.
