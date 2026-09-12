@@ -5,14 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e95bdf7e-dea1-4fe9-83e4-f169ff6e573b" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gigacode/plans/1789207952000-brave-island.plan.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/app/api/isochrone/route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/isochrone-time-selector.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/lib/isochrone-api.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/lib/use-isochrone.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/map-view.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/map-view.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/object-card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/object-card.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/backend/places.csv" beforeDir="false" afterPath="$PROJECT_DIR$/services/backend/places.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/frontend/src/data/objects.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/frontend/src/data/objects.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/frontend/src/data/places.csv" beforeDir="false" afterPath="$PROJECT_DIR$/services/frontend/src/data/places.csv" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,18 +19,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/MaximKudriavtsev/stroy-tula-map.git",
-    "accountId": "7de42e32-36b4-48c2-b7ba-c0f299b5c7a5"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/MaximKudriavtsev/stroy-tula-map.git&quot;,
+    &quot;accountId&quot;: &quot;7de42e32-36b4-48c2-b7ba-c0f299b5c7a5&quot;
   }
-}]]></component>
+}</component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "git-widget-placeholder": "isochronous",
+    "git-widget-placeholder": "main",
     "javascript.preferred.runtime.type.id": "node",
     "node.js.selected.package.tslint": "(autodetect)",
-    "ts.external.directory.path": "/Applications/WebStorm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external"
+    "ts.external.directory.path": "/Users/daniilsidorov/projects/stroy-tula-map/node_modules/typescript/lib"
   }
 }]]></component>
   <component name="TaskManager">
