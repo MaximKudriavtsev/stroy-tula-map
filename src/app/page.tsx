@@ -132,7 +132,7 @@ export default function Home() {
 
       {selectedObject ? (
         <ObjectCard
-          name={selectedObject.name}
+          object={selectedObject}
           onClose={handleCardClose}
           open={isCardOpen}
         />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DEFAULT_MAP_DATE } from "@/data/map-date";
 
 const MONTH_LABELS = [
   "Янв",
@@ -18,7 +19,7 @@ const MONTH_LABELS = [
 ] as const;
 
 const DEFAULT_YEARS = [2024, 2025];
-const DEFAULT_DATE = new Date(2024, 9, 1);
+const DEFAULT_DATE = DEFAULT_MAP_DATE;
 
 type DateSelectorProps = {
   years?: number[];
