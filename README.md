@@ -18,14 +18,24 @@ npm run dev
 ## Что уже есть
 
 - Next.js (App Router) + TypeScript + Tailwind
-- Полноэкранные Яндекс Карты (JS API 2.1), центр — Тульская область
-- 5 вымышленных объектов в `src/data/objects.ts`
+- Полноэкранные Яндекс Карты (JS API v3), центр — Тульская область
+- Строительные объекты из `src/data/objects.ts` / `places.csv`
+- Режим **Доступность**: тепловая карта покрытия по POI OpenStreetMap (`src/data/osm-pois.json`)
+
+## Обновление POI для теплокарты
+
+```bash
+npm run fetch:pois
+```
+
+Скрипт запрашивает Overpass API по Тульской области и перезаписывает `src/data/osm-pois.json` (ODbL / © OpenStreetMap contributors).
 
 ## Структура
 
 ```
 src/app/          страницы Next.js
-src/components/   карта
-src/data/         локальные данные-заглушки
+src/components/   карта и UI
+src/data/         локальные данные (стройки, OSM POI, граница области)
+scripts/          выгрузка OSM
 docs.md           описание продукта
 ```
