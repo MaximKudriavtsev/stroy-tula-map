@@ -1,32 +1,8 @@
-type WorldCoordinates = { x: number; y: number };
-
-type Feature = {
-  id: string;
-  type: string;
-  geometry: { type: string; coordinates: [number, number] };
-  properties?: Record<string, unknown>;
-};
-
-type ClustererObject = {
-  world: WorldCoordinates;
-  lnglat: [number, number];
-  clusterId: string;
-  features: Feature[];
-};
-
-type RenderProps = {
-  map: {
-    zoom: number;
-    size: { x: number; y: number };
-    center: [number, number];
-    projection: {
-      toWorldCoordinates: (coords: [number, number]) => WorldCoordinates;
-      fromWorldCoordinates: (world: WorldCoordinates) => [number, number];
-    };
-    bounds: [[number, number], [number, number]];
-  };
-  features: Feature[];
-};
+import type {
+  ClustererObject,
+  Feature,
+  IClusterMethod,
+} from "@yandex/ymaps3-clusterer";
 
 type RectGridOptions = {
   /** Ширина ячейки в пикселях экрана (для широких чипов — больше). */
@@ -53,7 +29,7 @@ const convertPixelSizeToWorldSize = (
 export function clusterByRectGrid({
   gridWidth,
   gridHeight,
-}: RectGridOptions) {
+}: RectGridOptions): IClusterMethod {
   let nextFeatureIndex = 0;
   const featureIdCharCache: Record<string, string> = {};
 
@@ -82,7 +58,7 @@ export function clusterByRectGrid({
   };
 
   return {
-    render({ map, features }: RenderProps): ClustererObject[] {
+    render({ map, features }) {
       const zoom = Math.round(map.zoom);
       const { width, height } = cellSizeWorld(zoom);
       const buckets = new Map<
