@@ -15,6 +15,11 @@ export const splashAnimations: SplashAnimation[] = [
     tag: "tula-tulitsa",
     file: "tula-tulitsa",
   },
+  {
+    id: "water-treatment-plant",
+    tag: "water-treatment-plant",
+    file: "water-treatment-plant",
+  },
 ];
 
 export function pickRandomSplashAnimation(): SplashAnimation | null {
