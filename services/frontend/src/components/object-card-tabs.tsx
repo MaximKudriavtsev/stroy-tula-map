@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ConstructionParticipants } from "@/components/construction-participants";
 import { ConstructionProgress } from "@/components/construction-progress";
 import { KeyParameters } from "@/components/key-parameters";
@@ -15,10 +15,24 @@ import { keyParametersForObject } from "@/lib/key-parameters";
 
 type ObjectCardTabsProps = {
   object: ConstructionObject;
+  initialTab?: ObjectCardTab;
+  mapDate?: Date | null;
+  syncTimelineToMapDate?: boolean;
+  onStagePhotoChange?: (photoSrc: string) => void;
 };
 
-export function ObjectCardTabs({ object }: ObjectCardTabsProps) {
-  const [tab, setTab] = useState(ObjectCardTab.About);
+export function ObjectCardTabs({
+  object,
+  initialTab = ObjectCardTab.About,
+  mapDate = null,
+  syncTimelineToMapDate = false,
+  onStagePhotoChange,
+}: ObjectCardTabsProps) {
+  const [tab, setTab] = useState(initialTab);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [object.id, initialTab]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-md">
@@ -59,9 +73,13 @@ export function ObjectCardTabs({ object }: ObjectCardTabsProps) {
           <AboutTabView object={object} />
         ) : null}
         {tab === ObjectCardTab.Progress ? (
-          <ConstructionProgress object={object} />
+          <ConstructionProgress
+            mapDate={mapDate}
+            object={object}
+            onStagePhotoChange={onStagePhotoChange}
+            syncToMapDate={syncTimelineToMapDate}
+          />
         ) : null}
-        {tab === ObjectCardTab.Benefit ? <BenefitTabView /> : null}
       </div>
     </div>
   );
@@ -76,8 +94,4 @@ function AboutTabView({ object }: { object: ConstructionObject }) {
       />
     </div>
   );
-}
-
-function BenefitTabView() {
-  return <div className="h-full" />;
 }

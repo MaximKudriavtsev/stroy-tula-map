@@ -1,28 +1,55 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ObjectCardFooter } from "@/components/object-card-footer";
 import { ObjectCardPhoto } from "@/components/object-card-photo";
 import { ObjectCardTabs } from "@/components/object-card-tabs";
+import { ObjectCardTab } from "@/data/object-card-tabs";
 import type { ConstructionObject } from "@/data/objects";
-import { inferObjectCategory, progressForObject } from "@/lib/object-chip";
+import {
+  isConstructionCompleteAt,
+  progressAtDate,
+  stageForProgress,
+} from "@/lib/construction-progress";
+import { inferObjectCategory } from "@/lib/object-chip";
 
 type ObjectCardProps = {
   object: ConstructionObject;
   open: boolean;
+  mapDate: Date;
+  syncTimelineToMapDate?: boolean;
   onClose: () => void;
   isochroneActive: boolean;
   onShowIsochrone: () => void;
   onHideIsochrone: () => void;
 };
 
+function photoForObject(object: ConstructionObject, date: Date) {
+  return stageForProgress(progressAtDate(object, date)).photoSrc;
+}
+
 export function ObjectCard({
   object,
   open,
+  mapDate,
+  syncTimelineToMapDate = false,
   onClose,
   isochroneActive,
   onShowIsochrone,
   onHideIsochrone,
 }: ObjectCardProps) {
+  const initialTab =
+    syncTimelineToMapDate && !isConstructionCompleteAt(object, mapDate)
+      ? ObjectCardTab.Progress
+      : ObjectCardTab.About;
+  const [photoSrc, setPhotoSrc] = useState(() =>
+    photoForObject(object, mapDate),
+  );
+
+  useEffect(() => {
+    setPhotoSrc(photoForObject(object, mapDate));
+  }, [object, mapDate]);
+
   return (
     <aside
       aria-hidden={!open}
@@ -37,6 +64,7 @@ export function ObjectCard({
         category={inferObjectCategory(object.name)}
         name={object.name}
         onClose={onClose}
+        photoSrc={photoSrc}
       />
       <div className="flex min-h-0 flex-1 flex-col gap-md px-md pt-md">
         <div className="flex shrink-0 flex-col gap-sm">
@@ -46,9 +74,15 @@ export function ObjectCard({
             <span>{object.address}</span>
           </p>
         </div>
-        <ObjectCardTabs object={object} />
+        <ObjectCardTabs
+          initialTab={initialTab}
+          mapDate={mapDate}
+          object={object}
+          onStagePhotoChange={setPhotoSrc}
+          syncTimelineToMapDate={syncTimelineToMapDate}
+        />
       </div>
-      <ObjectCardFooter progress={progressForObject(object)} />
+      <ObjectCardFooter progress={progressAtDate(object, mapDate)} />
 
       <div className="px-md pb-md">
         <div className="flex flex-col gap-sm">

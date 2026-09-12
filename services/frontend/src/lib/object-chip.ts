@@ -45,15 +45,12 @@ export function progressForObject(object: ConstructionObject) {
   return 28 + ((seed * 17) % 67);
 }
 
-export function buildStatusForObject(
-  object: ConstructionObject,
-  progress: number,
-) {
-  if (object.status === "completed") {
+export function buildStatusForProgress(progress: number) {
+  if (progress >= 100) {
     return ObjectBuildStatus.Completed;
   }
 
-  if (object.status === "planned") {
+  if (progress <= 10) {
     return ObjectBuildStatus.Planned;
   }
 
@@ -62,6 +59,13 @@ export function buildStatusForObject(
   }
 
   return ObjectBuildStatus.InProgress;
+}
+
+export function buildStatusForObject(
+  _object: ConstructionObject,
+  progress: number,
+) {
+  return buildStatusForProgress(progress);
 }
 
 export function countObjectsByCategory(

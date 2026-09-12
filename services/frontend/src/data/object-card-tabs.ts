@@ -7,7 +7,6 @@ export enum ObjectCardTab {
 export const objectCardTabOrder = [
   ObjectCardTab.About,
   ObjectCardTab.Progress,
-  ObjectCardTab.Benefit,
 ] as const;
 
 export const objectCardTabLabels: Record<ObjectCardTab, string> = {

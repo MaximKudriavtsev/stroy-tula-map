@@ -1,0 +1,488 @@
+{
+  "source": "OpenStreetMap / Overpass",
+  "license": "ODbL",
+  "fetchedAt": "2026-09-12T18:35:21.760Z",
+  "nearRadiusM": 2500,
+  "extendedRadiusM": 8000,
+  "objectsTotal": 95,
+  "withNamedStop": 65,
+  "withUnnamedStop": 14,
+  "withoutStop": 16,
+  "items": [
+    {
+      "objectNumber": 1,
+      "stopName": "Автовокзал Заокский",
+      "distanceM": 1065
+    },
+    {
+      "objectNumber": 2,
+      "stopName": "232 км",
+      "distanceM": 268
+    },
+    {
+      "objectNumber": 3,
+      "stopName": "Универмаг",
+      "distanceM": 310
+    },
+    {
+      "objectNumber": 4,
+      "stopName": "Гипермаркет Глобус",
+      "distanceM": 642
+    },
+    {
+      "objectNumber": 5,
+      "stopName": "Мыза",
+      "distanceM": 1374
+    },
+    {
+      "objectNumber": 6,
+      "stopName": null,
+      "distanceM": 392
+    },
+    {
+      "objectNumber": 7,
+      "stopName": "Магазин",
+      "distanceM": 519
+    },
+    {
+      "objectNumber": 8,
+      "stopName": "Стадион",
+      "distanceM": 250
+    },
+    {
+      "objectNumber": 9,
+      "stopName": "Стадион",
+      "distanceM": 439
+    },
+    {
+      "objectNumber": 10,
+      "stopName": "Колхозная",
+      "distanceM": 544
+    },
+    {
+      "objectNumber": 11,
+      "stopName": "по требованию",
+      "distanceM": 18
+    },
+    {
+      "objectNumber": 12,
+      "stopName": "Улица Жаворонкова",
+      "distanceM": 203
+    },
+    {
+      "objectNumber": 13,
+      "stopName": "Первомайская улица",
+      "distanceM": 52
+    },
+    {
+      "objectNumber": 14,
+      "stopName": "Школа",
+      "distanceM": 96
+    },
+    {
+      "objectNumber": 15,
+      "stopName": "Ямны – 1",
+      "distanceM": 84
+    },
+    {
+      "objectNumber": 16,
+      "stopName": null,
+      "distanceM": 318
+    },
+    {
+      "objectNumber": 17,
+      "stopName": "Магазин",
+      "distanceM": 510
+    },
+    {
+      "objectNumber": 18,
+      "stopName": "улица Кауля",
+      "distanceM": 791
+    },
+    {
+      "objectNumber": 19,
+      "stopName": null,
+      "distanceM": 300
+    },
+    {
+      "objectNumber": 20,
+      "stopName": "Магазин \"Импульс\"",
+      "distanceM": 370
+    },
+    {
+      "objectNumber": 21,
+      "stopName": null,
+      "distanceM": 2429
+    },
+    {
+      "objectNumber": 22,
+      "stopName": "Улица Халтурина",
+      "distanceM": 597
+    },
+    {
+      "objectNumber": 23,
+      "stopName": "Суворовское училище",
+      "distanceM": 604
+    },
+    {
+      "objectNumber": 24,
+      "stopName": "Красный Богатырь",
+      "distanceM": 1101
+    },
+    {
+      "objectNumber": 25,
+      "stopName": "Чернь",
+      "distanceM": 357
+    },
+    {
+      "objectNumber": 26,
+      "stopName": "Проспект Ленина",
+      "distanceM": 67
+    },
+    {
+      "objectNumber": 27,
+      "stopName": "Прокатная",
+      "distanceM": 994
+    },
+    {
+      "objectNumber": 28,
+      "stopName": "Посёлок Западный",
+      "distanceM": 277
+    },
+    {
+      "objectNumber": 29,
+      "stopName": null,
+      "distanceM": 418
+    },
+    {
+      "objectNumber": 30,
+      "stopName": "Молодежный центр \"Радуга\"",
+      "distanceM": 343
+    },
+    {
+      "objectNumber": 31,
+      "stopName": "Онкологический центр",
+      "distanceM": 224
+    },
+    {
+      "objectNumber": 32,
+      "stopName": "Заводская",
+      "distanceM": 414
+    },
+    {
+      "objectNumber": 33,
+      "stopName": "Посёлок Барсуки",
+      "distanceM": 802
+    },
+    {
+      "objectNumber": 34,
+      "stopName": "Рынок",
+      "distanceM": 446
+    },
+    {
+      "objectNumber": 35,
+      "stopName": "Больница",
+      "distanceM": 581
+    },
+    {
+      "objectNumber": 36,
+      "stopName": "База №10",
+      "distanceM": 685
+    },
+    {
+      "objectNumber": 37,
+      "stopName": "Микрорайон Новая Тула",
+      "distanceM": 542
+    },
+    {
+      "objectNumber": 38,
+      "stopName": "Нижняя",
+      "distanceM": 378
+    },
+    {
+      "objectNumber": 39,
+      "stopName": "Бор",
+      "distanceM": 396
+    },
+    {
+      "objectNumber": 40,
+      "stopName": null,
+      "distanceM": 917
+    },
+    {
+      "objectNumber": 41,
+      "stopName": "Школа",
+      "distanceM": 96
+    },
+    {
+      "objectNumber": 42,
+      "stopName": "Епифань",
+      "distanceM": 679
+    },
+    {
+      "objectNumber": 43,
+      "stopName": "ДЭУ",
+      "distanceM": 1814
+    },
+    {
+      "objectNumber": 44,
+      "stopName": null,
+      "distanceM": 601
+    },
+    {
+      "objectNumber": 45,
+      "stopName": null,
+      "distanceM": 1341
+    },
+    {
+      "objectNumber": 46,
+      "stopName": null,
+      "distanceM": 407
+    },
+    {
+      "objectNumber": 47,
+      "stopName": "Депо",
+      "distanceM": 646
+    },
+    {
+      "objectNumber": 48,
+      "stopName": null,
+      "distanceM": 2057
+    },
+    {
+      "objectNumber": 49,
+      "stopName": null,
+      "distanceM": 476
+    },
+    {
+      "objectNumber": 50,
+      "stopName": null,
+      "distanceM": 1798
+    },
+    {
+      "objectNumber": 51,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 52,
+      "stopName": "Школа №8",
+      "distanceM": 959
+    },
+    {
+      "objectNumber": 53,
+      "stopName": null,
+      "distanceM": 4172
+    },
+    {
+      "objectNumber": 54,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 55,
+      "stopName": "Автовокзал Заокский",
+      "distanceM": 314
+    },
+    {
+      "objectNumber": 56,
+      "stopName": "Улица Каминского",
+      "distanceM": 136
+    },
+    {
+      "objectNumber": 57,
+      "stopName": "Машзавод",
+      "distanceM": 547
+    },
+    {
+      "objectNumber": 58,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 59,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 60,
+      "stopName": "Михайловский",
+      "distanceM": 1304
+    },
+    {
+      "objectNumber": 61,
+      "stopName": "Дедилово",
+      "distanceM": 171
+    },
+    {
+      "objectNumber": 62,
+      "stopName": "Дедилово",
+      "distanceM": 195
+    },
+    {
+      "objectNumber": 63,
+      "stopName": "Обувная фабрика",
+      "distanceM": 584
+    },
+    {
+      "objectNumber": 64,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 65,
+      "stopName": "Музыкальная",
+      "distanceM": 163
+    },
+    {
+      "objectNumber": 66,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 67,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 68,
+      "stopName": "Завод Техкожизделий",
+      "distanceM": 1497
+    },
+    {
+      "objectNumber": 69,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 70,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 71,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 72,
+      "stopName": "Автовокзал Богородицк",
+      "distanceM": 126
+    },
+    {
+      "objectNumber": 73,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 74,
+      "stopName": "Верхнее Волохово",
+      "distanceM": 414
+    },
+    {
+      "objectNumber": 75,
+      "stopName": "Посёлок Горелки",
+      "distanceM": 662
+    },
+    {
+      "objectNumber": 76,
+      "stopName": "Нижняя Китаевка",
+      "distanceM": 171
+    },
+    {
+      "objectNumber": 77,
+      "stopName": "Улица Каминского",
+      "distanceM": 136
+    },
+    {
+      "objectNumber": 78,
+      "stopName": "Техникум",
+      "distanceM": 161
+    },
+    {
+      "objectNumber": 79,
+      "stopName": "СК Строитель",
+      "distanceM": 58
+    },
+    {
+      "objectNumber": 80,
+      "stopName": "улица Николая Руднева",
+      "distanceM": 320
+    },
+    {
+      "objectNumber": 81,
+      "stopName": "Плавск",
+      "distanceM": 131
+    },
+    {
+      "objectNumber": 82,
+      "stopName": null,
+      "distanceM": 231
+    },
+    {
+      "objectNumber": 83,
+      "stopName": "Молодежный центр \"Радуга\"",
+      "distanceM": 258
+    },
+    {
+      "objectNumber": 84,
+      "stopName": "Волово",
+      "distanceM": 827
+    },
+    {
+      "objectNumber": 85,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 86,
+      "stopName": "Яковлево-1",
+      "distanceM": 2478
+    },
+    {
+      "objectNumber": 87,
+      "stopName": "Автовокзал",
+      "distanceM": 1705
+    },
+    {
+      "objectNumber": 88,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 89,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 90,
+      "stopName": "Белоусовский парк",
+      "distanceM": 120
+    },
+    {
+      "objectNumber": 91,
+      "stopName": "Одоев-Центральная",
+      "distanceM": 393
+    },
+    {
+      "objectNumber": 92,
+      "stopName": "Горбольница",
+      "distanceM": 298
+    },
+    {
+      "objectNumber": 93,
+      "stopName": null,
+      "distanceM": null
+    },
+    {
+      "objectNumber": 94,
+      "stopName": "Шварцевский",
+      "distanceM": 391
+    },
+    {
+      "objectNumber": 95,
+      "stopName": null,
+      "distanceM": null
+    }
+  ]
+}

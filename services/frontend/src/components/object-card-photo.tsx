@@ -10,12 +10,14 @@ export const objectCardPhotoSrc = "/object-photo.png";
 type ObjectCardPhotoProps = {
   category: ObjectChipCategory;
   name: string;
+  photoSrc?: string;
   onClose: () => void;
 };
 
 export function ObjectCardPhoto({
   category,
   name,
+  photoSrc = objectCardPhotoSrc,
   onClose,
 }: ObjectCardPhotoProps) {
   const label = objectCategoryLabels[category];
@@ -26,7 +28,7 @@ export function ObjectCardPhoto({
       <img
         alt={name}
         className="aspect-[16/9] w-full object-cover"
-        src={objectCardPhotoSrc}
+        src={photoSrc}
       />
 
       <div className="absolute inset-0 flex flex-col justify-between p-md">
@@ -47,11 +49,6 @@ export function ObjectCardPhoto({
             <CloseIcon className="size-md" />
           </button>
         </div>
-
-        <div className="inline-flex w-fit items-center gap-sm rounded-full bg-inverse-surface px-md py-sm text-inverse-on-surface shadow-panel">
-          <EyeIcon className="size-md shrink-0" />
-          <span className="type-label-md font-semibold">Фото сейчас</span>
-        </div>
       </div>
     </figure>
   );
@@ -71,25 +68,6 @@ function CloseIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeWidth="1.6"
       />
-    </svg>
-  );
-}
-
-function EyeIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={className}
-      fill="none"
-      viewBox="0 0 20 20"
-    >
-      <path
-        d="M2.6 10s2.6-5 7.4-5 7.4 5 7.4 5-2.6 5-7.4 5-7.4-5-7.4-5Z"
-        stroke="currentColor"
-        strokeLinejoin="round"
-        strokeWidth="1.5"
-      />
-      <circle cx="10" cy="10" r="2.2" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
 }

@@ -21,7 +21,12 @@ import {
     drawProvisionHeatmap,
     groupPoisByCategory,
 } from '@/lib/provision-field';
-import { buildStatusForObject, inferObjectCategory, progressForObject } from '@/lib/object-chip';
+import { buildStatusForProgress, inferObjectCategory } from '@/lib/object-chip';
+import {
+    hasConstructionStartedAt,
+    progressAtDate,
+} from '@/lib/construction-progress';
+import { DEFAULT_MAP_DATE } from '@/data/map-date';
 
 /** Размер маркера ≈ 224×130: ячейка шире по X, уже по Y. */
 const CLUSTER_GRID = { gridWidth: 240, gridHeight: 130 };
@@ -124,12 +129,17 @@ const createClusterElement = (count: number) => {
     return element;
 };
 
+const objectsById = new Map(
+    constructionObjects.map((object) => [object.id, object])
+);
+
 const createObjectChipMarker = (
     object: ConstructionObject,
     roots: Root[],
+    mapDateRef: { current: Date },
+    chipRenderers: Map<string, () => void>,
     onSelect?: (object: ConstructionObject) => void
 ) => {
-    const progress = progressForObject(object);
     const element = document.createElement('div');
     element.style.cssText =
         'transform:translate(-50%,calc(-100% - 6px));pointer-events:auto;cursor:pointer;filter:drop-shadow(0 4px 16px rgb(108 88 76 / 0.08));';
@@ -140,14 +150,21 @@ const createObjectChipMarker = (
 
     const root = createRoot(element);
     roots.push(root);
-    root.render(
-        <ObjectInfoChip
-            category={inferObjectCategory(object.name)}
-            name={object.name}
-            progress={progress}
-            status={buildStatusForObject(object, progress)}
-        />
-    );
+
+    const renderChip = () => {
+        const progress = progressAtDate(object, mapDateRef.current);
+        root.render(
+            <ObjectInfoChip
+                category={inferObjectCategory(object.name)}
+                name={object.name}
+                progress={progress}
+                status={buildStatusForProgress(progress)}
+            />
+        );
+    };
+
+    renderChip();
+    chipRenderers.set(object.id, renderChip);
 
     return element;
 };
@@ -178,10 +195,21 @@ const buildMapFeatures = (): Feature[] => {
     return features;
 };
 
-const filterMapFeatures = (features: Feature[], category: ObjectCategory, searchQuery: string) => {
+const filterMapFeatures = (
+    features: Feature[],
+    category: ObjectCategory,
+    searchQuery: string,
+    mapDate: Date
+) => {
     const normalizedQuery = searchQuery.trim().toLocaleLowerCase('ru');
 
     return features.filter((feature) => {
+        const object = objectsById.get(String(feature.id));
+
+        if (!object || !hasConstructionStartedAt(object, mapDate)) {
+            return false;
+        }
+
         if (category !== ObjectCategory.All && feature.properties?.category !== category) {
             return false;
         }
@@ -199,6 +227,7 @@ type MapViewProps = {
     mode?: MapMode;
     category?: ObjectCategory;
     searchQuery?: string;
+    mapDate?: Date;
     onObjectSelect?: (object: ConstructionObject) => void;
     selectedObject?: ConstructionObject | null;
     isochroneTime?: IsochroneTime | null;
@@ -209,6 +238,7 @@ export const MapView = ({
     mode = mapModes.objects,
     category = ObjectCategory.All,
     searchQuery = '',
+    mapDate = DEFAULT_MAP_DATE,
     onObjectSelect,
     selectedObject,
     isochroneTime,
@@ -220,7 +250,9 @@ export const MapView = ({
     const modeRef = useRef(mode);
     const categoryRef = useRef(category);
     const searchQueryRef = useRef(searchQuery);
+    const mapDateRef = useRef(mapDate);
     const onObjectSelectRef = useRef(onObjectSelect);
+    const chipRenderersRef = useRef(new Map<string, () => void>());
     const coveragePoisRef = useRef<OsmPoi[]>(osmPois);
     const clipRingsRef = useRef<LngLat[][]>([]);
     const clustererRef = useRef<{
@@ -239,6 +271,7 @@ export const MapView = ({
     modeRef.current = mode;
     categoryRef.current = category;
     searchQueryRef.current = searchQuery;
+    mapDateRef.current = mapDate;
     onObjectSelectRef.current = onObjectSelect;
     coveragePoisRef.current = filterOsmPois(osmPois, category, searchQuery);
 
@@ -394,11 +427,10 @@ export const MapView = ({
                         .addChild(new YMapGeolocationControl({}))
                 );
 
-                const objectsById = new Map(
-                    constructionObjects.map((object) => [object.id, object])
-                );
+                const objectsByIdLocal = objectsById;
                 const allFeatures = buildMapFeatures();
                 allFeaturesRef.current = allFeatures;
+                chipRenderersRef.current.clear();
 
                 const resolveClusterFeatures = () => {
                     if (isHeatmapMode(modeRef.current)) {
@@ -408,14 +440,15 @@ export const MapView = ({
                     return filterMapFeatures(
                         allFeaturesRef.current,
                         categoryRef.current,
-                        searchQueryRef.current
+                        searchQueryRef.current,
+                        mapDateRef.current
                     );
                 };
 
                 const features = resolveClusterFeatures();
 
                 const marker = (feature: Feature) => {
-                    const object = objectsById.get(String(feature.id));
+                    const object = objectsByIdLocal.get(String(feature.id));
 
                     if (!object) {
                         return new YMapMarker({
@@ -439,16 +472,22 @@ export const MapView = ({
                                 onObjectSelectRef.current?.(object);
                             },
                         },
-                        createObjectChipMarker(object, markerRoots, (selected) => {
-                            if (map) {
-                                map.setLocation({
-                                    center: [selected.longitude, selected.latitude] as LngLat,
-                                    zoom: 14,
-                                    duration: 500,
-                                });
+                        createObjectChipMarker(
+                            object,
+                            markerRoots,
+                            mapDateRef,
+                            chipRenderersRef.current,
+                            (selected) => {
+                                if (map) {
+                                    map.setLocation({
+                                        center: [selected.longitude, selected.latitude] as LngLat,
+                                        zoom: 14,
+                                        duration: 500,
+                                    });
+                                }
+                                onObjectSelectRef.current?.(selected);
                             }
-                            onObjectSelectRef.current?.(selected);
-                        })
+                        )
                     );
                 };
 
@@ -635,13 +674,24 @@ export const MapView = ({
             return;
         }
 
+        mapDateRef.current = mapDate;
+
+        for (const renderChip of chipRenderersRef.current.values()) {
+            renderChip();
+        }
+
         const features = isHeatmapMode(mode)
             ? []
-            : filterMapFeatures(allFeaturesRef.current, category, searchQuery);
+            : filterMapFeatures(
+                  allFeaturesRef.current,
+                  category,
+                  searchQuery,
+                  mapDate
+              );
 
         clusterer.update({ features });
         redrawCoverageRef.current?.();
-    }, [category, searchQuery, mode]);
+    }, [category, searchQuery, mode, mapDate]);
 
     // ---- Isochrone feature management ----
     useEffect(() => {

@@ -1,13 +1,21 @@
+import { constructionObjects } from "@/data/objects";
+
 type ConstructionStatusBarProps = {
-  year: number;
-  openingCount: number;
-  buildingCount: number;
+  year?: number;
+  openingCount?: number;
+  buildingCount?: number;
 };
 
+const DEFAULT_OPENING_YEAR = 2026;
+
 export function ConstructionStatusBar({
-  year,
-  openingCount,
-  buildingCount,
+  year = DEFAULT_OPENING_YEAR,
+  openingCount = constructionObjects.filter(
+    (object) => object.status === "planned",
+  ).length,
+  buildingCount = constructionObjects.filter(
+    (object) => object.status === "in_progress",
+  ).length,
 }: ConstructionStatusBarProps) {
   return (
     <div
@@ -19,9 +27,11 @@ export function ConstructionStatusBar({
           aria-hidden="true"
           className="size-sm shrink-0 rounded-full bg-success"
         />
-        <span className="min-w-0 truncate">
-          Открывается в {year}:{" "}
-          <span className="tnum font-semibold">{openingCount}</span>
+        <span className="flex min-w-0 items-center gap-xs">
+          <span className="truncate">Открывается в {year}:</span>
+          <span className="tnum shrink-0 font-semibold text-on-surface">
+            {openingCount}
+          </span>
         </span>
       </p>
 
