@@ -237,3 +237,7 @@ body {
   line-height: var(--text-body-md--line-height);
   padding: 10px 12px;
 }
+
+.ymaps3--controls.ymaps3--controls_bottom.ymaps3--controls_left.ymaps3--controls_horizontal {
+  display: none !important;
+}
