@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="e95bdf7e-dea1-4fe9-83e4-f169ff6e573b" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.gigacode/plans/1789207952000-brave-island.plan.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/app/api/isochrone/route.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/components/isochrone-time-selector.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/lib/isochrone-api.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/lib/use-isochrone.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/map-view.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/map-view.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/object-card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/object-card.tsx" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/MaximKudriavtsev/stroy-tula-map.git",
+    "accountId": "7de42e32-36b4-48c2-b7ba-c0f299b5c7a5"
+  }
+}]]></component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "git-widget-placeholder": "isochronous",
+    "javascript.preferred.runtime.type.id": "node",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "ts.external.directory.path": "/Applications/WebStorm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <servers />
+  </component>
+</project>
