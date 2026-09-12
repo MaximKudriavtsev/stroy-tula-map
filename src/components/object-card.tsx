@@ -5,7 +5,6 @@ import { ObjectCardPhoto } from "@/components/object-card-photo";
 import { ObjectCardTabs } from "@/components/object-card-tabs";
 import type { ConstructionObject } from "@/data/objects";
 import { inferObjectCategory, progressForObject } from "@/lib/object-chip";
-import type { IsochroneTime } from "@/lib/use-isochrone";
 
 type ObjectCardProps = {
   object: ConstructionObject;
