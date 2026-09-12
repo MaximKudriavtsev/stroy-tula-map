@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "fetch:pois": "node scripts/fetch-osm-pois.mjs"
   },
   "dependencies": {
     "@yandex/ymaps3-clusterer": "^0.0.12",

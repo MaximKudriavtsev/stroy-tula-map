@@ -2,18 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { ConstructionStatusBar } from "@/components/construction-status-bar";
+import { CoverageLegend } from "@/components/coverage-legend";
 import { DateSelector } from "@/components/date-selector";
 import { MapHint } from "@/components/map-hint";
+import { MapModeSwitch } from "@/components/map-mode-switch";
 import { MapSearchBar } from "@/components/map-search-bar";
 import { MapView } from "@/components/map-view";
 import { ObjectCard } from "@/components/object-card";
 import { ObjectFilterBar } from "@/components/object-filter-bar";
+import { mapModes, type MapMode } from "@/data/map-modes";
 import { ObjectCategory } from "@/data/object-categories";
 import type { IsochroneTime } from "@/lib/use-isochrone";
 import {
   constructionObjects,
   type ConstructionObject,
 } from "@/data/objects";
+import {
+  countOsmPoisByCategory,
+  filterOsmPois,
+  osmPois,
+} from "@/data/osm-pois";
 import { countObjectsByCategory } from "@/lib/object-chip";
 
 const openingYear = 2026;
@@ -27,6 +35,7 @@ const buildingCount = constructionObjects.filter(
 const HUD_TRANSITION_MS = 300;
 
 export default function Home() {
+  const [mapMode, setMapMode] = useState<MapMode>(mapModes.objects);
   const [category, setCategory] = useState(ObjectCategory.All);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedObject, setSelectedObject] =
@@ -34,13 +43,20 @@ export default function Home() {
   const [isCardOpen, setIsCardOpen] = useState(false);
   const [isochroneTime, setIsochroneTime] = useState<IsochroneTime | null>(null);
 
+  const isCoverageMode = mapMode === mapModes.coverage;
   const normalizedQuery = searchQuery.trim().toLocaleLowerCase("ru");
+
   const searchedObjects = normalizedQuery
     ? constructionObjects.filter((object) =>
         object.name.toLocaleLowerCase("ru").includes(normalizedQuery),
       )
     : constructionObjects;
-  const categoryCounts = countObjectsByCategory(searchedObjects);
+
+  const searchedPois = filterOsmPois(osmPois, ObjectCategory.All, searchQuery);
+
+  const categoryCounts = isCoverageMode
+    ? countOsmPoisByCategory(searchedPois)
+    : countObjectsByCategory(searchedObjects);
 
   useEffect(() => {
     if (isCardOpen || !selectedObject) {
@@ -54,7 +70,19 @@ export default function Home() {
     return () => window.clearTimeout(timeoutId);
   }, [isCardOpen, selectedObject]);
 
+  useEffect(() => {
+    if (!isCoverageMode) {
+      return;
+    }
+
+    setIsCardOpen(false);
+  }, [isCoverageMode]);
+
   const handleObjectSelect = (object: ConstructionObject) => {
+    if (isCoverageMode) {
+      return;
+    }
+
     setSelectedObject(object);
 
     if (isCardOpen) {
@@ -83,12 +111,16 @@ export default function Home() {
 
   const handleIsochroneTimeChange = (time: IsochroneTime) => {
     setIsochroneTime(time);
+    
+  const handleModeChange = (mode: MapMode) => {
+    setMapMode(mode);
   };
 
   return (
     <div className="relative h-dvh overflow-hidden">
       <MapView
         category={category}
+        mode={mapMode}
         onObjectSelect={handleObjectSelect}
         searchQuery={searchQuery}
         selectedObject={selectedObject}
@@ -116,13 +148,14 @@ export default function Home() {
           </div>
           <div
             aria-hidden={isCardOpen}
-            className={`pointer-events-auto transition-[opacity,transform] duration-300 ease-out ${
+            className={`pointer-events-auto flex max-w-full flex-wrap items-center gap-sm transition-[opacity,transform] duration-300 ease-out ${
               isCardOpen
                 ? "pointer-events-none -translate-y-2 opacity-0"
                 : "translate-y-0 opacity-100"
             }`}
             inert={isCardOpen ? true : undefined}
           >
+            <MapModeSwitch onChange={handleModeChange} value={mapMode} />
             <ObjectFilterBar
               counts={categoryCounts}
               onChange={setCategory}
@@ -141,13 +174,18 @@ export default function Home() {
         }`}
         inert={isCardOpen ? true : undefined}
       >
-        <MapHint />
+        {isCoverageMode ? <CoverageLegend /> : null}
+        <MapHint>
+          {isCoverageMode
+            ? "Зелёные зоны — плотность инфраструктуры в радиусе 1 км (данные OpenStreetMap)"
+            : "Выберите объект на карте, чтобы узнать о нем подробнее"}
+        </MapHint>
         <div className="pointer-events-auto">
           <DateSelector />
         </div>
       </div>
 
-      {selectedObject ? (
+      {selectedObject && !isCoverageMode ? (
         <ObjectCard
           object={selectedObject}
           onClose={handleCardClose}

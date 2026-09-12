@@ -7,14 +7,17 @@ import type { LngLat, LngLatBounds, YMap } from "@yandex/ymaps3-types";
 import { IsochroneTimeSelector } from "@/components/isochrone-time-selector";
 import type { IsochroneTime } from "@/lib/use-isochrone";
 import { ObjectInfoChip } from "@/components/object-info-chip";
+import { mapModes, type MapMode } from "@/data/map-modes";
 import { ObjectCategory } from "@/data/object-categories";
 import { useIsochrone } from "@/lib/use-isochrone";
 import {
   constructionObjects,
   type ConstructionObject,
 } from "@/data/objects";
+import { filterOsmPois, osmPois, type OsmPoi } from "@/data/osm-pois";
 import { tulaOblastBoundary } from "@/data/tula-oblast-boundary";
 import { clusterByRectGrid } from "@/lib/cluster-by-rect-grid";
+import { drawCoverageHeatmap } from "@/lib/coverage-heatmap";
 import {
   buildStatusForObject,
   inferObjectCategory,
@@ -201,6 +204,7 @@ const filterMapFeatures = (
 };
 
 type MapViewProps = {
+  mode?: MapMode;
   category?: ObjectCategory;
   searchQuery?: string;
   onObjectSelect?: (object: ConstructionObject) => void;
@@ -210,6 +214,7 @@ type MapViewProps = {
 };
 
 export const MapView = ({
+  mode = mapModes.objects,
   category = ObjectCategory.All,
   searchQuery = "",
   onObjectSelect,
@@ -218,24 +223,32 @@ export const MapView = ({
   onIsochroneTimeChange,
 }: MapViewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const modeRef = useRef(mode);
   const categoryRef = useRef(category);
   const searchQueryRef = useRef(searchQuery);
   const onObjectSelectRef = useRef(onObjectSelect);
-  const clustererRef = useRef<{ update: (props: { features: Feature[] }) => void } | null>(
-    null,
-  );
+  const coveragePoisRef = useRef<OsmPoi[]>(osmPois);
+  const clipRingsRef = useRef<LngLat[][]>([]);
+  const clustererRef = useRef<{
+    update: (props: { features: Feature[] }) => void;
+  } | null>(null);
+  const mapRef = useRef<YMap | null>(null);
   const allFeaturesRef = useRef<Feature[]>([]);
   const isochroneFeatureRef = useRef<unknown>(null);
   const mapRef = useRef<YMap | null>(null);
   const YMapFeatureRef = useRef<unknown>(null);
+  const redrawCoverageRef = useRef<(() => void) | null>(null);
   const apiKey = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
   const [errorMessage, setErrorMessage] = useState<string | null>(
     apiKey ? null : "Не задан NEXT_PUBLIC_YANDEX_MAPS_API_KEY",
   );
 
+  modeRef.current = mode;
   categoryRef.current = category;
   searchQueryRef.current = searchQuery;
   onObjectSelectRef.current = onObjectSelect;
+  coveragePoisRef.current = filterOsmPois(osmPois, category, searchQuery);
 
   // Sync selectedObject prop with ref for click handlers
   useEffect(() => {
@@ -281,6 +294,7 @@ export const MapView = ({
           YMapControls,
           YMapFeatureDataSource,
           YMapLayer,
+          YMapListener,
         } = api;
 
         YMapFeatureRef.current = YMapFeature;
@@ -301,6 +315,7 @@ export const MapView = ({
         }
 
         const oblastRings = tulaOblastBoundary.map(toLngLatRing);
+        clipRingsRef.current = oblastRings;
         const oblastBounds = getBoundsFromCoordinates(oblastRings.flat());
 
         map = new YMap(containerRef.current, {
@@ -308,7 +323,12 @@ export const MapView = ({
             bounds: oblastBounds,
           },
           margin: [24, 24, 24, 24],
+          camera: {
+            tilt: 0,
+            azimuth: 0,
+          },
         });
+        mapRef.current = map;
 
         map
           .addChild(new YMapDefaultSchemeLayer({}))
@@ -378,11 +398,20 @@ export const MapView = ({
         );
         const allFeatures = buildMapFeatures();
         allFeaturesRef.current = allFeatures;
-        const features = filterMapFeatures(
-          allFeatures,
-          categoryRef.current,
-          searchQueryRef.current,
-        );
+
+        const resolveClusterFeatures = () => {
+          if (modeRef.current === mapModes.coverage) {
+            return [];
+          }
+
+          return filterMapFeatures(
+            allFeaturesRef.current,
+            categoryRef.current,
+            searchQueryRef.current,
+          );
+        };
+
+        const features = resolveClusterFeatures();
 
         const marker = (feature: Feature) => {
           const object = objectsById.get(String(feature.id));
@@ -452,6 +481,73 @@ export const MapView = ({
         clustererRef.current = clusterer;
         map.addChild(clusterer);
         mapRef.current = map;
+
+        const redrawCoverage = () => {
+          const canvas = canvasRef.current;
+          const currentMap = mapRef.current;
+
+          if (!canvas || !currentMap) {
+            return;
+          }
+
+          if (modeRef.current !== mapModes.coverage) {
+            const context = canvas.getContext("2d");
+            context?.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.style.opacity = "0";
+            return;
+          }
+
+          canvas.style.opacity = "1";
+          const size = currentMap.size;
+          const dpr = window.devicePixelRatio || 1;
+          const cssWidth = size.x;
+          const cssHeight = size.y;
+
+          if (
+            canvas.width !== Math.round(cssWidth * dpr) ||
+            canvas.height !== Math.round(cssHeight * dpr)
+          ) {
+            canvas.width = Math.round(cssWidth * dpr);
+            canvas.height = Math.round(cssHeight * dpr);
+            canvas.style.width = `${cssWidth}px`;
+            canvas.style.height = `${cssHeight}px`;
+          }
+
+          const ctx = canvas.getContext("2d");
+
+          if (!ctx) {
+            return;
+          }
+
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          drawCoverageHeatmap(
+            ctx,
+            coveragePoisRef.current,
+            clipRingsRef.current,
+            {
+              center: [...currentMap.center] as LngLat,
+              zoom: currentMap.zoom,
+              width: cssWidth,
+              height: cssHeight,
+              projection: currentMap.projection,
+            },
+          );
+        };
+
+        redrawCoverageRef.current = redrawCoverage;
+
+        map.addChild(
+          new YMapListener({
+            onUpdate() {
+              redrawCoverage();
+            },
+            onResize() {
+              redrawCoverage();
+            },
+          }),
+        );
+
+        redrawCoverage();
       } catch (error) {
         if (!isCancelled) {
           setErrorMessage(
@@ -468,6 +564,8 @@ export const MapView = ({
     return () => {
       isCancelled = true;
       clustererRef.current = null;
+      mapRef.current = null;
+      redrawCoverageRef.current = null;
       markerRoots.forEach((root) => {
         root.unmount();
       });
@@ -481,14 +579,14 @@ export const MapView = ({
       return;
     }
 
-    clusterer.update({
-      features: filterMapFeatures(
-        allFeaturesRef.current,
-        category,
-        searchQuery,
-      ),
-    });
-  }, [category, searchQuery]);
+    const features =
+      mode === mapModes.coverage
+        ? []
+        : filterMapFeatures(allFeaturesRef.current, category, searchQuery);
+
+    clusterer.update({ features });
+    redrawCoverageRef.current?.();
+  }, [category, searchQuery, mode]);
 
   // ---- Isochrone feature management ----
   useEffect(() => {
@@ -550,6 +648,14 @@ export const MapView = ({
           </div>
         </div>
       )}
+    <div className="relative h-dvh w-full">
+      <div ref={containerRef} className="h-dvh w-full" />
+      <canvas
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[5]"
+        ref={canvasRef}
+        style={{ opacity: mode === mapModes.coverage ? 1 : 0 }}
+      />
     </div>
   );
 };
