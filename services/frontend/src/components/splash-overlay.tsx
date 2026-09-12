@@ -1,10 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import {
   loadSplashAnimation,
   pickRandomSplashAnimation,
 } from "@/animations/registry";
+import splashLogo from "@/animations/logo-with-title-compressed.png";
 
 const HOLD_MS = 3000;
 const FADE_MS = 500;
@@ -29,7 +31,7 @@ export function SplashOverlay() {
         }
 
         const element = document.createElement(animation.tag) as PlayableElement;
-        element.style.width = "min(100vw, 1280px)";
+        element.style.width = "100%";
         host.replaceChildren(element);
         element.play?.();
       });
@@ -54,11 +56,22 @@ export function SplashOverlay() {
   return (
     <div
       aria-hidden="true"
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-white transition-opacity duration-500 ease-out ${
+      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-white transition-opacity duration-500 ease-out ${
         isFading ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
     >
-      <div className="flex w-full items-center justify-center" ref={hostRef} />
+      <div className="flex max-h-full w-full max-w-[min(92vw,960px)] flex-col items-center justify-center gap-sm px-margin md:gap-md">
+        <Image
+          alt=""
+          className="h-auto w-[min(42vw,200px)] shrink-0"
+          priority
+          src={splashLogo}
+        />
+        <div
+          className="flex w-full items-center justify-center"
+          ref={hostRef}
+        />
+      </div>
     </div>
   );
 }
