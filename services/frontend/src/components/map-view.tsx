@@ -550,7 +550,6 @@ export const MapView = ({
                                 if (map) {
                                     map.setLocation({
                                         center: [selected.longitude, selected.latitude] as LngLat,
-                                        zoom: 14,
                                         duration: 500,
                                     });
                                 }

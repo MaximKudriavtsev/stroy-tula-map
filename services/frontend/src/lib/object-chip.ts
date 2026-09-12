@@ -17,7 +17,7 @@ export function inferObjectCategory(name: string): ObjectChipCategory {
     return ObjectCategory.Healthcare;
   }
 
-  if (/спорт|стадион|ледов|арена|бассейн|физкульт/.test(text)) {
+  if (/спорт|стадион|ледов|арена|бассейн|физкульт|единоборств|тренировочный|атлет|манеж|фиджитал|вело|трек/.test(text)) {
     return ObjectCategory.Sport;
   }
 
