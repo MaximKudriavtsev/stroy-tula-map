@@ -1,0 +1,36 @@
+services:
+  server:
+    build:
+      context: ./services/backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_NAME}
+      PORT: 3000
+    depends_on:
+      - postgres
+  web:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_YANDEX_MAPS_API_KEY: ${NEXT_PUBLIC_YANDEX_MAPS_API_KEY}
+    depends_on:
+      - server
+  postgres:
+    image: postgis/postgis:17-3.5
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

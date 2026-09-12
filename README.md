@@ -1,41 +1,59 @@
-# Карта строительства Тульской области
+# stroy-tula
 
-Каркас публичной карты. Базы данных пока нет: объекты берутся из локальной заглушки.
+Монорепозиторий проекта карты строящихся объектов Тульской области.
 
-## Запуск
+```
+services/
+├── frontend/   Next.js 16 (App Router, Tailwind, Яндекс Карты 3.0)
+└── backend/    NestJS 11 + TypeORM + PostgreSQL/PostGIS
+```
 
-1. Скопируйте `.env.example` в `.env.local` и укажите ключ Яндекс Карт.
-2. В кабинете API для ключа добавьте HTTP Referer: `http://localhost:3000/*`
-3. Запустите проект:
+Каждый сервис ставит зависимости независимо: свои `package.json` и `package-lock.json`.
+Корневой `package.json` не содержит зависимостей — только скрипты-обёртки над сервисами.
+
+## Установка
 
 ```bash
-npm install
-npm run dev
+npm run install:all
 ```
 
-Откройте [http://localhost:3000](http://localhost:3000).
-
-## Что уже есть
-
-- Next.js (App Router) + TypeScript + Tailwind
-- Полноэкранные Яндекс Карты (JS API v3), центр — Тульская область
-- Строительные объекты из `src/data/objects.ts` / `places.csv`
-- Режим **Доступность**: тепловая карта покрытия по POI OpenStreetMap (`src/data/osm-pois.json`)
-
-## Обновление POI для теплокарты
+## Локальная разработка без docker
 
 ```bash
-npm run fetch:pois
+npm run dev:frontend   # http://localhost:3000
+npm run dev:backend    # http://localhost:4000
 ```
 
-Скрипт запрашивает Overpass API по Тульской области и перезаписывает `src/data/osm-pois.json` (ODbL / © OpenStreetMap contributors).
+Перед первым запуском скопируйте примеры переменных окружения:
 
-## Структура
+- `services/frontend/.env.example` → `services/frontend/.env.local`
+- `services/backend/.env.example` → `services/backend/.env`
 
+## Запуск в docker
+
+```bash
+cp .env.example .env   # заполните DB_* и NEXT_PUBLIC_YANDEX_MAPS_API_KEY
+npm run docker:dev     # frontend :3000, backend :4000, postgres :5432
+npm run docker:prod
+npm run docker:down
 ```
-src/app/          страницы Next.js
-src/components/   карта и UI
-src/data/         локальные данные (стройки, OSM POI, граница области)
-scripts/          выгрузка OSM
-docs.md           описание продукта
-```
+
+Внутри сети compose бэкенд доступен как `http://server:3000`, на хост он публикуется
+как `4000`, чтобы не конфликтовать с dev-сервером Next.js на `3000`.
+
+## Основные скрипты
+
+| Скрипт | Действие |
+| --- | --- |
+| `install:all` | Установка зависимостей обоих сервисов |
+| `dev:frontend` / `dev:backend` | Dev-режим сервиса |
+| `build:frontend` / `build:backend` | Production-сборка |
+| `start:frontend` / `start:backend` | Запуск собранного сервиса |
+| `lint:frontend` / `lint:backend` | Линтинг |
+| `test:backend` / `test:backend:e2e` | Тесты бэкенда |
+| `migration:generate` / `migration:run` / `migration:revert` / `migration:show` | Миграции TypeORM |
+| `import:places` | Импорт `services/backend/places.csv` через API (`API_URL`, по умолчанию `http://localhost:4000`) |
+| `fetch:pois` | Обновление данных OSM для карты |
+| `docker:dev` / `docker:prod` / `docker:down` | Работа с compose |
+
+Документация по каждой части — в `services/frontend/README.md` и `services/backend/README.md`.
