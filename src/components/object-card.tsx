@@ -1,12 +1,24 @@
 "use client";
 
+import type { IsochroneTime } from "@/lib/use-isochrone";
+
 type ObjectCardProps = {
   name: string;
   open: boolean;
   onClose: () => void;
+  isochroneActive: boolean;
+  onShowIsochrone: () => void;
+  onHideIsochrone: () => void;
 };
 
-export function ObjectCard({ name, open, onClose }: ObjectCardProps) {
+export function ObjectCard({
+  name,
+  open,
+  onClose,
+  isochroneActive,
+  onShowIsochrone,
+  onHideIsochrone,
+}: ObjectCardProps) {
   return (
     <aside
       aria-hidden={!open}
@@ -29,6 +41,50 @@ export function ObjectCard({ name, open, onClose }: ObjectCardProps) {
       </div>
       <div className="px-md pb-md">
         <h2 className="type-headline-md text-on-surface">{name}</h2>
+      </div>
+
+      <div className="px-md pb-md">
+        <div className="flex flex-col gap-sm">
+          <div className="flex items-center justify-between">
+            <span className="type-body-sm text-on-surface-variant">
+              Пешие маршруты
+            </span>
+            {isochroneActive && (
+              <button
+                className="type-body-sm text-on-surface-variant underline"
+                onClick={onHideIsochrone}
+                type="button"
+              >
+                Скрыть
+              </button>
+            )}
+          </div>
+
+          {!isochroneActive ? (
+            <button
+              className="inline-flex items-center justify-center gap-xs rounded-full bg-primary-container px-md py-sm type-label-md text-on-primary-container transition-colors hover:bg-primary"
+              onClick={onShowIsochrone}
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                className="size-sm"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+                  fill="currentColor"
+                />
+              </svg>
+              Показать пешие маршруты
+            </button>
+          ) : (
+            <p className="type-body-sm text-on-surface-variant">
+              Выберите время в панели внизу карты
+            </p>
+          )}
+        </div>
       </div>
     </aside>
   );
