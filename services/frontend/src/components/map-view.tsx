@@ -5,11 +5,18 @@ import { createRoot, type Root } from 'react-dom/client';
 import type { Feature } from '@yandex/ymaps3-clusterer';
 import type { LngLat, LngLatBounds, YMap } from '@yandex/ymaps3-types';
 import { IsochroneTimeSelector } from '@/components/isochrone-time-selector';
+import { MapHint } from '@/components/map-hint';
 import type { IsochroneTime } from '@/lib/use-isochrone';
 import { ObjectInfoChip } from '@/components/object-info-chip';
 import { isHeatmapMode, mapModes, type MapMode } from '@/data/map-modes';
 import { ObjectCategory } from '@/data/object-categories';
 import { useIsochrone } from '@/lib/use-isochrone';
+import {
+    easeInOutCubic,
+    isochroneFill,
+    isochroneStroke,
+    morphRings,
+} from '@/lib/isochrone-morph';
 import { constructionObjects, type ConstructionObject } from '@/data/objects';
 import { filterOsmPois, osmPois, type OsmPoi } from '@/data/osm-pois';
 import { populationHexes } from '@/data/population-grid';
@@ -260,7 +267,11 @@ export const MapView = ({
     } | null>(null);
     const mapRef = useRef<YMap | null>(null);
     const allFeaturesRef = useRef<Feature[]>([]);
-    const isochroneFeatureRef = useRef<unknown>(null);
+    const isochroneFeatureRef = useRef<{
+        update: (props: Record<string, unknown>) => void;
+    } | null>(null);
+    const isochroneCoordsRef = useRef<number[][] | null>(null);
+    const isochroneAnimRef = useRef<number | null>(null);
     const YMapFeatureRef = useRef<unknown>(null);
     const redrawCoverageRef = useRef<(() => void) | null>(null);
     const apiKey = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
@@ -695,36 +706,134 @@ export const MapView = ({
 
     // ---- Isochrone feature management ----
     useEffect(() => {
-        const map = mapRef.current;
-        if (!map) return;
+        const stopAnim = () => {
+            if (isochroneAnimRef.current != null) {
+                cancelAnimationFrame(isochroneAnimRef.current);
+                isochroneAnimRef.current = null;
+            }
+        };
 
-        // Remove existing isochrone
-        if (isochroneFeatureRef.current) {
-            map.removeChild(isochroneFeatureRef.current as any);
-            isochroneFeatureRef.current = null;
+        const map = mapRef.current;
+        const YMapFeatureCtor = YMapFeatureRef.current as
+            | (new (props: Record<string, unknown>) => {
+                  update: (props: Record<string, unknown>) => void;
+              })
+            | null;
+
+        const clearFeature = () => {
+            stopAnim();
+            if (map && isochroneFeatureRef.current) {
+                map.removeChild(isochroneFeatureRef.current as never);
+                isochroneFeatureRef.current = null;
+            }
+            isochroneCoordsRef.current = null;
+        };
+
+        if (!map || !YMapFeatureCtor) {
+            return;
         }
 
-        if (isochroneState.status === 'ready' && isochroneTime != null) {
-            const YMapFeatureCtor = YMapFeatureRef.current as new (props: any) => any;
-            if (!YMapFeatureCtor) return;
+        const readyCoords =
+            isochroneState.status === 'ready'
+                ? isochroneState.data.coordinates
+                : null;
+        const visibleCoords =
+            readyCoords ??
+            (isochroneState.status === 'loading' || isochroneState.status === 'error'
+                ? isochroneState.data?.coordinates
+                : null) ??
+            null;
+
+        if (isochroneTime == null || (!readyCoords && !isochroneCoordsRef.current && !visibleCoords)) {
+            clearFeature();
+            return;
+        }
+
+        const applyGeometry = (
+            ring: number[][],
+            fillOpacity = 0.25,
+            strokeOpacity = 0.8,
+        ) => {
+            const geometry = {
+                type: 'Polygon',
+                coordinates: [ring],
+            };
+            const style = {
+                fill: isochroneFill(fillOpacity),
+                stroke: isochroneStroke(strokeOpacity),
+                simplificationRate: 0,
+                interactive: false,
+                zIndex: 2,
+            };
+
+            if (isochroneFeatureRef.current) {
+                isochroneFeatureRef.current.update({ geometry, style });
+                return;
+            }
 
             const feature = new YMapFeatureCtor({
                 id: 'isochrone-zone',
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [isochroneState.data.coordinates],
-                },
-                style: {
-                    fill: 'rgba(184, 74, 57, 0.25)',
-                    stroke: [{ width: 3, color: '#B84A39', opacity: 0.8 }],
-                    simplificationRate: 0,
-                    interactive: false,
-                    zIndex: 2,
-                },
+                geometry,
+                style,
             });
-            map.addChild(feature);
+            map.addChild(feature as never);
             isochroneFeatureRef.current = feature;
+        };
+
+        if (isochroneState.status === 'loading' && isochroneCoordsRef.current) {
+            return;
         }
+
+        if (!readyCoords) {
+            if (visibleCoords && !isochroneFeatureRef.current) {
+                applyGeometry(visibleCoords);
+                isochroneCoordsRef.current = visibleCoords;
+            }
+            return;
+        }
+
+        const previous = isochroneCoordsRef.current;
+        if (previous === readyCoords) {
+            return;
+        }
+
+        stopAnim();
+
+        if (!previous) {
+            const startedAt = performance.now();
+            const durationMs = 280;
+            const tick = (now: number) => {
+                const progress = Math.min(1, (now - startedAt) / durationMs);
+                const eased = easeInOutCubic(progress);
+                applyGeometry(readyCoords, 0.25 * eased, 0.8 * eased);
+                if (progress < 1) {
+                    isochroneAnimRef.current = requestAnimationFrame(tick);
+                    return;
+                }
+                isochroneAnimRef.current = null;
+                isochroneCoordsRef.current = readyCoords;
+            };
+            isochroneAnimRef.current = requestAnimationFrame(tick);
+            return () => stopAnim();
+        }
+
+        const startedAt = performance.now();
+        const durationMs = 450;
+        const tick = (now: number) => {
+            const progress = Math.min(1, (now - startedAt) / durationMs);
+            const eased = easeInOutCubic(progress);
+            applyGeometry(morphRings(previous, readyCoords, eased));
+            if (progress < 1) {
+                isochroneAnimRef.current = requestAnimationFrame(tick);
+                return;
+            }
+            isochroneAnimRef.current = null;
+            applyGeometry(readyCoords);
+            isochroneCoordsRef.current = readyCoords;
+        };
+        isochroneAnimRef.current = requestAnimationFrame(tick);
+
+        return () => stopAnim();
     }, [isochroneState, isochroneTime]);
 
     if (errorMessage) {
@@ -753,22 +862,22 @@ export const MapView = ({
                 ref={overlayCanvasRef}
                 style={{ opacity: isHeatmapMode(mode) ? 1 : 0 }}
             />
-            {hasActiveIsochrone && isochroneTime != null && (
-                <div className="pointer-events-auto absolute bottom-20 left-1/2 z-20 -translate-x-1/2 md:bottom-28">
-                    <div className="flex flex-col items-center gap-2">
-                        <IsochroneTimeSelector
-                            selectedTime={isochroneTime}
-                            onTimeChange={onIsochroneTimeChange ?? (() => {})}
-                        />
-                        {isochroneState.status === 'loading' && (
-                            <p className="text-sm text-zinc-500">Загрузка...</p>
-                        )}
-                        {isochroneState.status === 'error' && (
-                            <p className="text-sm text-zinc-600">{isochroneState.message}</p>
-                        )}
-                    </div>
+            {hasActiveIsochrone && isochroneTime != null ? (
+                <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-sm px-margin pb-md md:px-margin-desktop md:pb-lg">
+                    <MapHint>
+                        Выберите время, чтобы изменить радиус зоны доступности
+                    </MapHint>
+                    <IsochroneTimeSelector
+                        selectedTime={isochroneTime}
+                        onTimeChange={onIsochroneTimeChange ?? (() => {})}
+                    />
+                    {isochroneState.status === 'error' && !isochroneState.data ? (
+                        <p className="type-body-sm text-on-surface-variant">
+                            {isochroneState.message}
+                        </p>
+                    ) : null}
                 </div>
-            )}
+            ) : null}
         </div>
     );
 };

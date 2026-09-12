@@ -2,11 +2,11 @@ import { ObjectCategory } from "@/data/object-categories";
 
 export const iconClassByCategory: Record<ObjectCategory, string> = {
   [ObjectCategory.All]: "text-on-surface-variant",
-  [ObjectCategory.Healthcare]: "text-primary-container",
-  [ObjectCategory.Education]: "text-tertiary",
-  [ObjectCategory.Sport]: "text-secondary",
-  [ObjectCategory.Infrastructure]: "text-primary",
-  [ObjectCategory.UtilitiesAndParks]: "text-tertiary-container",
+  [ObjectCategory.Healthcare]: "text-category-healthcare",
+  [ObjectCategory.Education]: "text-category-education",
+  [ObjectCategory.Sport]: "text-category-sport",
+  [ObjectCategory.Infrastructure]: "text-category-infrastructure",
+  [ObjectCategory.UtilitiesAndParks]: "text-category-utilities",
 };
 
 export function CategoryIcon({

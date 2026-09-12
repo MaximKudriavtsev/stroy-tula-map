@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ConstructionParticipants } from "@/components/construction-participants";
 import { ConstructionProgress } from "@/components/construction-progress";
 import { KeyParameters } from "@/components/key-parameters";
+import { ObjectAccessibility } from "@/components/object-accessibility";
 import {
   ObjectCardTab,
   objectCardTabLabels,
@@ -12,12 +13,16 @@ import {
 import type { ConstructionObject } from "@/data/objects";
 import { constructionParticipantsForObject } from "@/lib/construction-participants";
 import { keyParametersForObject } from "@/lib/key-parameters";
+import { nearestStopForObjectId } from "@/lib/nearest-stop";
 
 type ObjectCardTabsProps = {
   object: ConstructionObject;
   initialTab?: ObjectCardTab;
   mapDate?: Date | null;
   syncTimelineToMapDate?: boolean;
+  isochroneActive: boolean;
+  onShowIsochrone: () => void;
+  onHideIsochrone: () => void;
   onStagePhotoChange?: (photoSrc: string) => void;
 };
 
@@ -26,6 +31,9 @@ export function ObjectCardTabs({
   initialTab = ObjectCardTab.About,
   mapDate = null,
   syncTimelineToMapDate = false,
+  isochroneActive,
+  onShowIsochrone,
+  onHideIsochrone,
   onStagePhotoChange,
 }: ObjectCardTabsProps) {
   const [tab, setTab] = useState(initialTab);
@@ -70,7 +78,12 @@ export function ObjectCardTabs({
         role="tabpanel"
       >
         {tab === ObjectCardTab.About ? (
-          <AboutTabView object={object} />
+          <AboutTabView
+            isochroneActive={isochroneActive}
+            object={object}
+            onHideIsochrone={onHideIsochrone}
+            onShowIsochrone={onShowIsochrone}
+          />
         ) : null}
         {tab === ObjectCardTab.Progress ? (
           <ConstructionProgress
@@ -85,12 +98,28 @@ export function ObjectCardTabs({
   );
 }
 
-function AboutTabView({ object }: { object: ConstructionObject }) {
+function AboutTabView({
+  object,
+  isochroneActive,
+  onShowIsochrone,
+  onHideIsochrone,
+}: {
+  object: ConstructionObject;
+  isochroneActive: boolean;
+  onShowIsochrone: () => void;
+  onHideIsochrone: () => void;
+}) {
   return (
     <div className="flex flex-col gap-md">
       <KeyParameters items={keyParametersForObject(object)} />
       <ConstructionParticipants
         items={constructionParticipantsForObject(object)}
+      />
+      <ObjectAccessibility
+        isochroneActive={isochroneActive}
+        onHideIsochrone={onHideIsochrone}
+        onShowIsochrone={onShowIsochrone}
+        stop={nearestStopForObjectId(object.id)}
       />
     </div>
   );

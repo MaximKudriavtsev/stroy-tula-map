@@ -53,6 +53,22 @@
   --color-success: #3d7a45;
   --color-success-container: #e7f1e6;
 
+  --color-category-healthcare: #d32f2f;
+  --color-category-healthcare-soft: #ef9a9a;
+  --color-category-healthcare-deep: #9a0007;
+  --color-category-education: #1565c0;
+  --color-category-education-soft: #90caf9;
+  --color-category-education-deep: #0d47a1;
+  --color-category-sport: #f9a825;
+  --color-category-sport-soft: #ffe082;
+  --color-category-sport-deep: #f57f17;
+  --color-category-infrastructure: #6d4c41;
+  --color-category-infrastructure-soft: #bcaaa4;
+  --color-category-infrastructure-deep: #4e342e;
+  --color-category-utilities: #2e7d32;
+  --color-category-utilities-soft: #a5d6a7;
+  --color-category-utilities-deep: #1b5e20;
+
   --text-display-lg: 40px;
   --text-display-lg--line-height: 48px;
   --text-display-lg--letter-spacing: -0.02em;

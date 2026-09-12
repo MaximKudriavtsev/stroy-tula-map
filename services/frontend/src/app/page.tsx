@@ -70,7 +70,7 @@ export default function Home() {
   const isCoverageMode = mapMode === mapModes.coverage;
   const isObjectsMode = mapMode === mapModes.objects;
   const isCurrentMapDate = isSameMonth(mapDate, MAP_NOW);
-  const showStatusBar = isCurrentMapDate && isObjectsMode;
+  const showStatusBar = isCurrentMapDate && isObjectsMode && !isCardOpen;
   const normalizedQuery = searchQuery.trim().toLocaleLowerCase("ru");
 
   const searchedObjects = normalizedQuery
@@ -129,6 +129,7 @@ export default function Home() {
   };
 
   const handleCardClose = () => {
+    setIsochroneTime(null);
     setIsCardOpen(false);
   };
 
@@ -233,10 +234,10 @@ export default function Home() {
         <div className="relative flex w-full flex-col items-center gap-sm">
           <div
             aria-hidden={!isProvisionMode}
-            className={`transition-[opacity,transform] duration-300 ease-out ${
+            className={`absolute bottom-full left-1/2 mb-sm -translate-x-1/2 transition-[opacity,transform] duration-300 ease-out ${
               isProvisionMode
-                ? "relative translate-y-0 opacity-100"
-                : "pointer-events-none absolute bottom-0 translate-y-3 opacity-0"
+                ? "translate-y-0 opacity-100"
+                : "pointer-events-none translate-y-2 opacity-0"
             }`}
             inert={!isProvisionMode ? true : undefined}
           >
@@ -245,17 +246,17 @@ export default function Home() {
 
           <div
             aria-hidden={!isCoverageMode}
-            className={`transition-[opacity,transform] duration-300 ease-out ${
+            className={`absolute bottom-full left-1/2 mb-sm -translate-x-1/2 transition-[opacity,transform] duration-300 ease-out ${
               isCoverageMode
-                ? "relative translate-y-0 opacity-100"
-                : "pointer-events-none absolute bottom-0 translate-y-3 opacity-0"
+                ? "translate-y-0 opacity-100"
+                : "pointer-events-none translate-y-2 opacity-0"
             }`}
             inert={!isCoverageMode ? true : undefined}
           >
             <CoverageLegend />
           </div>
 
-          <MapHint>{mapHintByMode[mapMode]}</MapHint>
+          <MapHint showHand={isObjectsMode}>{mapHintByMode[mapMode]}</MapHint>
 
           <div className="pointer-events-auto">
             <DateSelector

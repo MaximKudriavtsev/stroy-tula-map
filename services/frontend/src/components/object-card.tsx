@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  CategoryIcon,
+  iconClassByCategory,
+} from "@/components/object-category-icon";
 import { ObjectCardFooter } from "@/components/object-card-footer";
 import { ObjectCardPhoto } from "@/components/object-card-photo";
 import { ObjectCardTabs } from "@/components/object-card-tabs";
@@ -45,86 +49,146 @@ export function ObjectCard({
   const [photoSrc, setPhotoSrc] = useState(() =>
     photoForObject(object, mapDate),
   );
+  const [collapsed, setCollapsed] = useState(false);
+  const category = inferObjectCategory(object.name);
 
   useEffect(() => {
     setPhotoSrc(photoForObject(object, mapDate));
   }, [object, mapDate]);
 
+  useEffect(() => {
+    setCollapsed(false);
+  }, [object.id]);
+
+  useEffect(() => {
+    if (!open) {
+      setCollapsed(false);
+    }
+  }, [open]);
+
+  const handleShowIsochrone = () => {
+    setCollapsed(true);
+    onShowIsochrone();
+  };
+
+  const handleExpand = () => {
+    setCollapsed(false);
+    onHideIsochrone();
+  };
+
+  const handleClose = () => {
+    setCollapsed(false);
+    onHideIsochrone();
+    onClose();
+  };
+
   return (
     <aside
       aria-hidden={!open}
       aria-label="Карточка объекта"
-      className={`pointer-events-auto absolute inset-y-md right-margin z-30 flex w-[min(100%-2rem,26rem)] flex-col overflow-hidden rounded-[2rem] border border-outline-variant bg-surface-container-lowest shadow-overlay transition-[opacity,transform] duration-300 ease-out md:right-margin-desktop ${
+      className={`pointer-events-auto absolute top-md right-margin z-30 flex w-[min(100%-2rem,26rem)] flex-col overflow-hidden border border-outline-variant bg-surface-container-lowest shadow-overlay transition-[max-height,border-radius,opacity,transform] duration-300 ease-in-out md:right-margin-desktop ${
+        collapsed
+          ? "bottom-auto max-h-[4.75rem] rounded-[1.75rem]"
+          : "bottom-md max-h-[calc(100dvh-2rem)] rounded-[2rem]"
+      } ${
         open
           ? "translate-x-0 opacity-100"
           : "pointer-events-none translate-x-6 opacity-0"
       }`}
     >
-      <ObjectCardPhoto
-        category={inferObjectCategory(object.name)}
-        name={object.name}
-        onClose={onClose}
-        photoSrc={photoSrc}
-      />
-      <div className="flex min-h-0 flex-1 flex-col gap-md px-md pt-md">
-        <div className="flex shrink-0 flex-col gap-sm">
-          <h2 className="type-headline-md text-on-surface">{object.name}</h2>
-          <p className="flex items-start gap-sm type-body-md text-on-surface-variant">
-            <LocationIcon className="mt-px size-md shrink-0 text-primary" />
-            <span>{object.address}</span>
-          </p>
+      <div
+        aria-hidden={collapsed}
+        className={`grid min-h-0 transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
+          collapsed
+            ? "pointer-events-none grid-rows-[0fr] opacity-0"
+            : "min-h-0 flex-1 grid-rows-[1fr] opacity-100"
+        }`}
+      >
+        <div className="flex min-h-0 flex-col overflow-hidden">
+          <ObjectCardPhoto
+            category={category}
+            name={object.name}
+            onClose={handleClose}
+            photoSrc={photoSrc}
+          />
+          <div className="flex min-h-0 flex-1 flex-col gap-md px-md pt-md pb-md">
+            <div className="flex shrink-0 flex-col gap-sm">
+              <h2
+                className="truncate type-headline-md text-on-surface"
+                title={object.name}
+              >
+                {object.name}
+              </h2>
+              <p className="flex items-start gap-sm type-body-md text-on-surface-variant">
+                <LocationIcon className="mt-px size-md shrink-0 text-primary" />
+                <span>{object.address}</span>
+              </p>
+            </div>
+            <ObjectCardTabs
+              initialTab={initialTab}
+              isochroneActive={isochroneActive}
+              mapDate={mapDate}
+              object={object}
+              onHideIsochrone={onHideIsochrone}
+              onShowIsochrone={handleShowIsochrone}
+              onStagePhotoChange={setPhotoSrc}
+              syncTimelineToMapDate={syncTimelineToMapDate}
+            />
+          </div>
+          <ObjectCardFooter progress={progressAtDate(object, mapDate)} />
         </div>
-        <ObjectCardTabs
-          initialTab={initialTab}
-          mapDate={mapDate}
-          object={object}
-          onStagePhotoChange={setPhotoSrc}
-          syncTimelineToMapDate={syncTimelineToMapDate}
-        />
       </div>
-      <ObjectCardFooter progress={progressAtDate(object, mapDate)} />
 
-      <div className="px-md pb-md">
-        <div className="flex flex-col gap-sm">
-          <div className="flex items-center justify-between">
-            <span className="type-body-sm text-on-surface-variant">
-              Пешие маршруты
-            </span>
-            {isochroneActive && (
+      <div
+        aria-hidden={!collapsed}
+        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
+          collapsed
+            ? "grid-rows-[1fr] opacity-100"
+            : "pointer-events-none grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex items-center gap-md px-md py-sm">
+            <CategoryIcon
+              category={category}
+              className={`size-[1.125rem] shrink-0 ${iconClassByCategory[category]}`}
+            />
+
+            <div className="min-w-0 flex-1">
+              <h2
+                className="truncate type-title-sm text-on-surface"
+                title={object.name}
+              >
+                {object.name}
+              </h2>
+              <p className="mt-xs flex items-center gap-xs type-body-sm text-on-surface-variant">
+                <LocationIcon className="size-sm shrink-0 text-primary" />
+                <span className="truncate">{object.address}</span>
+              </p>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-sm">
               <button
-                className="type-body-sm text-on-surface-variant underline"
-                onClick={onHideIsochrone}
+                aria-label="Развернуть карточку"
+                className="flex size-[2rem] shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container"
+                onClick={handleExpand}
+                tabIndex={collapsed ? 0 : -1}
                 type="button"
               >
-                Скрыть
+                <ExpandIcon className="size-md" />
               </button>
-            )}
-          </div>
 
-          {!isochroneActive ? (
-            <button
-              className="inline-flex items-center justify-center gap-xs rounded-full bg-primary-container px-md py-sm type-label-md text-on-primary-container transition-colors hover:bg-primary"
-              onClick={onShowIsochrone}
-              type="button"
-            >
-              <svg
-                aria-hidden="true"
-                className="size-sm"
-                fill="none"
-                viewBox="0 0 24 24"
+              <button
+                aria-label="Закрыть карточку"
+                className="flex size-[2rem] shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container"
+                onClick={handleClose}
+                tabIndex={collapsed ? 0 : -1}
+                type="button"
               >
-                <path
-                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                  fill="currentColor"
-                />
-              </svg>
-              Показать пешие маршруты
-            </button>
-          ) : (
-            <p className="type-body-sm text-on-surface-variant">
-              Выберите время в панели внизу карты
-            </p>
-          )}
+                <CloseIcon className="size-md" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </aside>
@@ -145,6 +209,43 @@ function LocationIcon({ className }: { className?: string }) {
         strokeWidth="1.5"
       />
       <circle cx="10" cy="9" r="1.7" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ExpandIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 20 20"
+    >
+      <path
+        d="M11.5 3.5H16.5V8.5M8.5 16.5H3.5V11.5M16.5 3.5 11 9M3.5 16.5 9 11"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 20 20"
+    >
+      <path
+        d="M6 6l8 8M14 6l-8 8"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.6"
+      />
     </svg>
   );
 }
