@@ -26,7 +26,7 @@ export function MapSearchBar({
                         <span>В Деле</span>
                     </p>
                     <p className="hidden type-body-sm text-on-surface-variant sm:block">
-                        Городские изменения для жителей
+                        Строим для жителей
                     </p>
                 </div>
             </div>

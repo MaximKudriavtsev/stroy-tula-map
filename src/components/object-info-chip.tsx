@@ -26,7 +26,7 @@ export function ObjectInfoChip({
 
   return (
     <div
-      className={`inline-flex flex-col items-center gap-xs ${className ?? ""}`}
+      className={`inline-flex cursor-pointer flex-col items-center gap-xs ${className ?? ""}`}
       role="status"
     >
       <div className="flex h-24 w-24 shrink-0 items-end justify-center">

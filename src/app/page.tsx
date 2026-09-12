@@ -12,6 +12,7 @@ import { ObjectCard } from "@/components/object-card";
 import { ObjectFilterBar } from "@/components/object-filter-bar";
 import { mapModes, type MapMode } from "@/data/map-modes";
 import { ObjectCategory } from "@/data/object-categories";
+import type { IsochroneTime } from "@/lib/use-isochrone";
 import {
   constructionObjects,
   type ConstructionObject,
@@ -40,6 +41,7 @@ export default function Home() {
   const [selectedObject, setSelectedObject] =
     useState<ConstructionObject | null>(null);
   const [isCardOpen, setIsCardOpen] = useState(false);
+  const [isochroneTime, setIsochroneTime] = useState<IsochroneTime | null>(null);
 
   const isCoverageMode = mapMode === mapModes.coverage;
   const normalizedQuery = searchQuery.trim().toLocaleLowerCase("ru");
@@ -99,6 +101,17 @@ export default function Home() {
     setIsCardOpen(false);
   };
 
+  const handleShowIsochrone = () => {
+    setIsochroneTime(10);
+  };
+
+  const handleHideIsochrone = () => {
+    setIsochroneTime(null);
+  };
+
+  const handleIsochroneTimeChange = (time: IsochroneTime) => {
+    setIsochroneTime(time);
+    
   const handleModeChange = (mode: MapMode) => {
     setMapMode(mode);
   };
@@ -110,6 +123,9 @@ export default function Home() {
         mode={mapMode}
         onObjectSelect={handleObjectSelect}
         searchQuery={searchQuery}
+        selectedObject={selectedObject}
+        isochroneTime={isochroneTime}
+        onIsochroneTimeChange={handleIsochroneTimeChange}
       />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-margin pt-md md:px-margin-desktop">
@@ -171,9 +187,12 @@ export default function Home() {
 
       {selectedObject && !isCoverageMode ? (
         <ObjectCard
-          name={selectedObject.name}
+          object={selectedObject}
           onClose={handleCardClose}
           open={isCardOpen}
+          isochroneActive={isochroneTime !== null}
+          onShowIsochrone={handleShowIsochrone}
+          onHideIsochrone={handleHideIsochrone}
         />
       ) : null}
     </div>

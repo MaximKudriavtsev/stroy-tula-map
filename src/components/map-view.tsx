@@ -4,9 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { Feature } from "@yandex/ymaps3-clusterer";
 import type { LngLat, LngLatBounds, YMap } from "@yandex/ymaps3-types";
+import { IsochroneTimeSelector } from "@/components/isochrone-time-selector";
+import type { IsochroneTime } from "@/lib/use-isochrone";
 import { ObjectInfoChip } from "@/components/object-info-chip";
 import { mapModes, type MapMode } from "@/data/map-modes";
 import { ObjectCategory } from "@/data/object-categories";
+import { useIsochrone } from "@/lib/use-isochrone";
 import {
   constructionObjects,
   type ConstructionObject,
@@ -205,6 +208,9 @@ type MapViewProps = {
   category?: ObjectCategory;
   searchQuery?: string;
   onObjectSelect?: (object: ConstructionObject) => void;
+  selectedObject?: ConstructionObject | null;
+  isochroneTime?: IsochroneTime | null;
+  onIsochroneTimeChange?: (time: IsochroneTime) => void;
 };
 
 export const MapView = ({
@@ -212,6 +218,9 @@ export const MapView = ({
   category = ObjectCategory.All,
   searchQuery = "",
   onObjectSelect,
+  selectedObject,
+  isochroneTime,
+  onIsochroneTimeChange,
 }: MapViewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -226,6 +235,9 @@ export const MapView = ({
   } | null>(null);
   const mapRef = useRef<YMap | null>(null);
   const allFeaturesRef = useRef<Feature[]>([]);
+  const isochroneFeatureRef = useRef<unknown>(null);
+  const mapRef = useRef<YMap | null>(null);
+  const YMapFeatureRef = useRef<unknown>(null);
   const redrawCoverageRef = useRef<(() => void) | null>(null);
   const apiKey = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
   const [errorMessage, setErrorMessage] = useState<string | null>(
@@ -237,6 +249,22 @@ export const MapView = ({
   searchQueryRef.current = searchQuery;
   onObjectSelectRef.current = onObjectSelect;
   coveragePoisRef.current = filterOsmPois(osmPois, category, searchQuery);
+
+  // Sync selectedObject prop with ref for click handlers
+  useEffect(() => {
+    // selectedObjectRef is intentionally not used for isochrone logic
+    // (that uses the prop directly)
+  }, [selectedObject]);
+
+  const {
+    state: isochroneState,
+    hasActiveIsochrone,
+  } = useIsochrone(
+    selectedObject?.longitude ?? null,
+    selectedObject?.latitude ?? null,
+    selectedObject?.municipality,
+    isochroneTime ?? 10,
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -268,6 +296,8 @@ export const MapView = ({
           YMapLayer,
           YMapListener,
         } = api;
+
+        YMapFeatureRef.current = YMapFeature;
 
         const [{ YMapClusterer }, theme] = await Promise.all([
           api.import("@yandex/ymaps3-clusterer") as Promise<
@@ -311,6 +341,8 @@ export const MapView = ({
               zIndex: 1800,
             }),
           );
+
+
 
         map.addChild(
           new YMapFeature({
@@ -396,10 +428,24 @@ export const MapView = ({
               coordinates: feature.geometry.coordinates,
               source: CLUSTER_SOURCE,
               onClick() {
+                if (map) {
+                  map.setLocation({
+                    center: [object.longitude, object.latitude] as LngLat,
+                    zoom: 14,
+                    duration: 500,
+                  });
+                }
                 onObjectSelectRef.current?.(object);
               },
             },
             createObjectChipMarker(object, markerRoots, (selected) => {
+              if (map) {
+                map.setLocation({
+                  center: [selected.longitude, selected.latitude] as LngLat,
+                  zoom: 14,
+                  duration: 500,
+                });
+              }
               onObjectSelectRef.current?.(selected);
             }),
           );
@@ -434,6 +480,7 @@ export const MapView = ({
         });
         clustererRef.current = clusterer;
         map.addChild(clusterer);
+        mapRef.current = map;
 
         const redrawCoverage = () => {
           const canvas = canvasRef.current;
@@ -541,6 +588,40 @@ export const MapView = ({
     redrawCoverageRef.current?.();
   }, [category, searchQuery, mode]);
 
+  // ---- Isochrone feature management ----
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove existing isochrone
+    if (isochroneFeatureRef.current) {
+      map.removeChild(isochroneFeatureRef.current as any);
+      isochroneFeatureRef.current = null;
+    }
+
+    if (isochroneState.status === "ready" && isochroneTime != null) {
+      const YMapFeatureCtor = YMapFeatureRef.current as new (props: any) => any;
+      if (!YMapFeatureCtor) return;
+
+      const feature = new YMapFeatureCtor({
+        id: "isochrone-zone",
+        geometry: {
+          type: "Polygon",
+          coordinates: [isochroneState.data.coordinates],
+        },
+        style: {
+          fill: "rgba(184, 74, 57, 0.25)",
+          stroke: [{ width: 3, color: "#B84A39", opacity: 0.8 }],
+          simplificationRate: 0,
+          interactive: false,
+          zIndex: 2,
+        },
+      });
+      map.addChild(feature);
+      isochroneFeatureRef.current = feature;
+    }
+  }, [isochroneState, isochroneTime]);
+
   if (errorMessage) {
     return (
       <div className="flex h-dvh w-full items-center justify-center p-6 text-center text-sm text-zinc-600">
@@ -550,6 +631,23 @@ export const MapView = ({
   }
 
   return (
+    <div ref={containerRef} className="h-dvh w-full">
+      {hasActiveIsochrone && isochroneTime != null && (
+        <div className="pointer-events-auto absolute bottom-20 left-1/2 z-20 -translate-x-1/2 md:bottom-28">
+          <div className="flex flex-col items-center gap-2">
+            <IsochroneTimeSelector
+              selectedTime={isochroneTime}
+              onTimeChange={onIsochroneTimeChange}
+            />
+            {isochroneState.status === "loading" && (
+              <p className="text-sm text-zinc-500">Загрузка...</p>
+            )}
+            {isochroneState.status === "error" && (
+              <p className="text-sm text-zinc-600">{isochroneState.message}</p>
+            )}
+          </div>
+        </div>
+      )}
     <div className="relative h-dvh w-full">
       <div ref={containerRef} className="h-dvh w-full" />
       <canvas

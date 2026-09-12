@@ -1,12 +1,29 @@
 "use client";
 
+import { ObjectCardFooter } from "@/components/object-card-footer";
+import { ObjectCardPhoto } from "@/components/object-card-photo";
+import { ObjectCardTabs } from "@/components/object-card-tabs";
+import type { ConstructionObject } from "@/data/objects";
+import { inferObjectCategory, progressForObject } from "@/lib/object-chip";
+import type { IsochroneTime } from "@/lib/use-isochrone";
+
 type ObjectCardProps = {
-  name: string;
+  object: ConstructionObject;
   open: boolean;
   onClose: () => void;
+  isochroneActive: boolean;
+  onShowIsochrone: () => void;
+  onHideIsochrone: () => void;
 };
 
-export function ObjectCard({ name, open, onClose }: ObjectCardProps) {
+export function ObjectCard({
+  object,
+  open,
+  onClose,
+  isochroneActive,
+  onShowIsochrone,
+  onHideIsochrone,
+}: ObjectCardProps) {
   return (
     <aside
       aria-hidden={!open}
@@ -17,24 +34,71 @@ export function ObjectCard({ name, open, onClose }: ObjectCardProps) {
           : "pointer-events-none translate-x-6 opacity-0"
       }`}
     >
-      <div className="flex shrink-0 justify-end p-md pb-sm">
-        <button
-          aria-label="Закрыть карточку"
-          className="flex size-xl shrink-0 items-center justify-center rounded-full bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container"
-          onClick={onClose}
-          type="button"
-        >
-          <CloseIcon className="size-md" />
-        </button>
+      <ObjectCardPhoto
+        category={inferObjectCategory(object.name)}
+        name={object.name}
+        onClose={onClose}
+      />
+      <div className="flex min-h-0 flex-1 flex-col gap-md px-md pt-md">
+        <div className="flex shrink-0 flex-col gap-sm">
+          <h2 className="type-headline-md text-on-surface">{object.name}</h2>
+          <p className="flex items-start gap-sm type-body-md text-on-surface-variant">
+            <LocationIcon className="mt-px size-md shrink-0 text-primary" />
+            <span>{object.address}</span>
+          </p>
+        </div>
+        <ObjectCardTabs object={object} />
       </div>
+      <ObjectCardFooter progress={progressForObject(object)} />
+
       <div className="px-md pb-md">
-        <h2 className="type-headline-md text-on-surface">{name}</h2>
+        <div className="flex flex-col gap-sm">
+          <div className="flex items-center justify-between">
+            <span className="type-body-sm text-on-surface-variant">
+              Пешие маршруты
+            </span>
+            {isochroneActive && (
+              <button
+                className="type-body-sm text-on-surface-variant underline"
+                onClick={onHideIsochrone}
+                type="button"
+              >
+                Скрыть
+              </button>
+            )}
+          </div>
+
+          {!isochroneActive ? (
+            <button
+              className="inline-flex items-center justify-center gap-xs rounded-full bg-primary-container px-md py-sm type-label-md text-on-primary-container transition-colors hover:bg-primary"
+              onClick={onShowIsochrone}
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                className="size-sm"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+                  fill="currentColor"
+                />
+              </svg>
+              Показать пешие маршруты
+            </button>
+          ) : (
+            <p className="type-body-sm text-on-surface-variant">
+              Выберите время в панели внизу карты
+            </p>
+          )}
+        </div>
       </div>
     </aside>
   );
 }
 
-function CloseIcon({ className }: { className?: string }) {
+function LocationIcon({ className }: { className?: string }) {
   return (
     <svg
       aria-hidden="true"
@@ -43,11 +107,11 @@ function CloseIcon({ className }: { className?: string }) {
       viewBox="0 0 20 20"
     >
       <path
-        d="M6 6l8 8M14 6l-8 8"
+        d="M10 17.2s5.2-4.6 5.2-8.2A5.2 5.2 0 0 0 10 3.8 5.2 5.2 0 0 0 4.8 9c0 3.6 5.2 8.2 5.2 8.2Z"
         stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="1.6"
+        strokeWidth="1.5"
       />
+      <circle cx="10" cy="9" r="1.7" fill="currentColor" />
     </svg>
   );
 }
