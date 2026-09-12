@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { Feature } from '@yandex/ymaps3-clusterer';
-import type { LngLat, LngLatBounds, YMap } from '@yandex/ymaps3-types';
+import type { LngLat, LngLatBounds, Projection, YMap } from '@yandex/ymaps3-types';
 import { IsochroneTimeSelector } from '@/components/isochrone-time-selector';
 import { MapHint } from '@/components/map-hint';
 import type { IsochroneTime } from '@/lib/use-isochrone';
@@ -42,6 +42,11 @@ const TULA_OBLAST_BORDER_COLOR = '#B84A39';
 const TULA_OBLAST_OUTSIDE_FILL = 'rgba(11, 18, 32, 0.42)';
 const CLUSTER_SOURCE = 'clusterer-source';
 
+const MAP_MARGIN = 24;
+const MAP_MAX_ZOOM = 21;
+/** Небольшой запас, чтобы карта не была жёстко залипшей на минимальном зуме. */
+const RESTRICT_SLACK = 0.02;
+
 /** Внешнее кольцо на весь мир: внутри него вырезается Тульская область. [lng, lat] */
 const WORLD_OUTER_RING: LngLat[] = [
     [-179.99, 85],
@@ -56,16 +61,43 @@ const toLngLat = ([lat, lng]: number[]): LngLat => [lng, lat];
 
 const toLngLatRing = (ring: number[][]): LngLat[] => ring.map(toLngLat);
 
-const expandBounds = (bounds: LngLatBounds, factor: number): LngLatBounds => {
-    const southWest = bounds[0];
-    const northEast = bounds[1];
-    const lngPadding = (northEast[0] - southWest[0]) * factor;
-    const latPadding = (northEast[1] - southWest[1]) * factor;
+type ViewportRestriction = { minZoom: number; restrictMapArea: LngLatBounds };
 
-    return [
-        [southWest[0] - lngPadding, southWest[1] - latPadding],
-        [northEast[0] + lngPadding, northEast[1] + latPadding],
-    ];
+/**
+ * Мировые координаты лежат в [-1, 1], пиксель мира = 2 ** (zoom + 7).
+ * Ограничение считаем от вьюпорта: область Тулы вытянута по вертикали, поэтому на
+ * широком экране она заметно уже вьюпорта. Если restrictMapArea меньше вьюпорта,
+ * Яндекс не может удержать вьюпорт внутри и прижимает камеру к краю области.
+ */
+const getViewportRestriction = (
+    projection: Projection,
+    bounds: LngLatBounds,
+    size: { x: number; y: number }
+): ViewportRestriction => {
+    const southWest = projection.toWorldCoordinates(bounds[0]);
+    const northEast = projection.toWorldCoordinates(bounds[1]);
+    const spanX = Math.abs(northEast.x - southWest.x);
+    const spanY = Math.abs(northEast.y - southWest.y);
+    const centerX = (southWest.x + northEast.x) / 2;
+    const centerY = (southWest.y + northEast.y) / 2;
+
+    // Зум, при котором область целиком видна с учётом margin карты.
+    const availableX = Math.max(size.x - MAP_MARGIN * 2, 1);
+    const availableY = Math.max(size.y - MAP_MARGIN * 2, 1);
+    const minZoom =
+        Math.min(Math.log2(availableX / spanX), Math.log2(availableY / spanY)) - 7;
+
+    const worldPerPixel = 1 / 2 ** (minZoom + 7);
+    const halfX = (Math.max(spanX, size.x * worldPerPixel) / 2) * (1 + RESTRICT_SLACK);
+    const halfY = (Math.max(spanY, size.y * worldPerPixel) / 2) * (1 + RESTRICT_SLACK);
+
+    return {
+        minZoom,
+        restrictMapArea: [
+            projection.fromWorldCoordinates({ x: centerX - halfX, y: centerY - halfY }),
+            projection.fromWorldCoordinates({ x: centerX + halfX, y: centerY + halfY }),
+        ],
+    };
 };
 
 const getBoundsFromCoordinates = (coordinates: LngLat[]): LngLatBounds => {
@@ -370,7 +402,7 @@ export const MapView = ({
                     location: {
                         bounds: oblastBounds,
                     },
-                    margin: [24, 24, 24, 24],
+                    margin: [MAP_MARGIN, MAP_MARGIN, MAP_MARGIN, MAP_MARGIN],
                     camera: {
                         tilt: 0,
                         azimuth: 0,
@@ -427,10 +459,36 @@ export const MapView = ({
                     })
                 );
 
-                map.update({
-                    zoomRange: { min: map.zoom, max: 21 },
-                    restrictMapArea: expandBounds(oblastBounds, 0.02),
-                });
+                const applyViewportRestriction = () => {
+                    const currentMap = mapRef.current;
+                    const container = containerRef.current;
+
+                    if (!currentMap || !container) {
+                        return;
+                    }
+
+                    const size = {
+                        x: container.clientWidth || currentMap.size.x,
+                        y: container.clientHeight || currentMap.size.y,
+                    };
+
+                    if (size.x <= 0 || size.y <= 0) {
+                        return;
+                    }
+
+                    const { minZoom, restrictMapArea } = getViewportRestriction(
+                        currentMap.projection,
+                        oblastBounds,
+                        size
+                    );
+
+                    currentMap.update({
+                        zoomRange: { min: minZoom, max: MAP_MAX_ZOOM },
+                        restrictMapArea,
+                    });
+                };
+
+                applyViewportRestriction();
 
                 map.addChild(
                     new YMapControls({ position: 'right' })
@@ -647,6 +705,7 @@ export const MapView = ({
                             scheduleRedraw();
                         },
                         onResize() {
+                            applyViewportRestriction();
                             scheduleRedraw();
                         },
                     })
