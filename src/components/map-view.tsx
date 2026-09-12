@@ -209,7 +209,8 @@ export const MapView = ({
     onIsochroneTimeChange,
 }: MapViewProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const fieldCanvasRef = useRef<HTMLCanvasElement>(null);
+    const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
     const modeRef = useRef(mode);
     const categoryRef = useRef(category);
     const searchQueryRef = useRef(searchQuery);
@@ -257,6 +258,7 @@ export const MapView = ({
 
         let isCancelled = false;
         let map: YMap | undefined;
+        let redrawFrameId = 0;
         const markerRoots: Root[] = [];
 
         const setupMap = async () => {
@@ -461,50 +463,84 @@ export const MapView = ({
                 map.addChild(clusterer);
                 mapRef.current = map;
 
+                const syncCanvasSize = (
+                    canvas: HTMLCanvasElement,
+                    cssWidth: number,
+                    cssHeight: number,
+                    dpr: number
+                ) => {
+                    const nextWidth = Math.round(cssWidth * dpr);
+                    const nextHeight = Math.round(cssHeight * dpr);
+
+                    if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
+                        canvas.width = nextWidth;
+                        canvas.height = nextHeight;
+                        canvas.style.width = `${cssWidth}px`;
+                        canvas.style.height = `${cssHeight}px`;
+                    }
+                };
+
                 const redrawCoverage = () => {
-                    const canvas = canvasRef.current;
+                    const fieldCanvas = fieldCanvasRef.current;
+                    const overlayCanvas = overlayCanvasRef.current;
                     const currentMap = mapRef.current;
 
-                    if (!canvas || !currentMap) {
+                    if (!fieldCanvas || !overlayCanvas || !currentMap) {
                         return;
                     }
 
                     if (modeRef.current !== mapModes.coverage) {
-                        const context = canvas.getContext('2d');
-                        context?.clearRect(0, 0, canvas.width, canvas.height);
-                        canvas.style.opacity = '0';
+                        const fieldContext = fieldCanvas.getContext('2d');
+                        const overlayContext = overlayCanvas.getContext('2d');
+                        fieldContext?.clearRect(0, 0, fieldCanvas.width, fieldCanvas.height);
+                        overlayContext?.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                        fieldCanvas.style.opacity = '0';
+                        overlayCanvas.style.opacity = '0';
                         return;
                     }
 
-                    canvas.style.opacity = '1';
+                    fieldCanvas.style.opacity = '1';
+                    overlayCanvas.style.opacity = '1';
+
                     const size = currentMap.size;
                     const dpr = window.devicePixelRatio || 1;
                     const cssWidth = size.x;
                     const cssHeight = size.y;
 
-                    if (
-                        canvas.width !== Math.round(cssWidth * dpr) ||
-                        canvas.height !== Math.round(cssHeight * dpr)
-                    ) {
-                        canvas.width = Math.round(cssWidth * dpr);
-                        canvas.height = Math.round(cssHeight * dpr);
-                        canvas.style.width = `${cssWidth}px`;
-                        canvas.style.height = `${cssHeight}px`;
-                    }
+                    syncCanvasSize(fieldCanvas, cssWidth, cssHeight, dpr);
+                    syncCanvasSize(overlayCanvas, cssWidth, cssHeight, dpr);
 
-                    const ctx = canvas.getContext('2d');
+                    const fieldCtx = fieldCanvas.getContext('2d');
+                    const overlayCtx = overlayCanvas.getContext('2d');
 
-                    if (!ctx) {
+                    if (!fieldCtx || !overlayCtx) {
                         return;
                     }
 
-                    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                    drawCoverageHeatmap(ctx, coveragePoisRef.current, clipRingsRef.current, {
+                    fieldCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    overlayCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+                    const pois = coveragePoisRef.current;
+                    const filterShare = osmPois.length > 0 ? pois.length / osmPois.length : 1;
+
+                    drawCoverageHeatmap(fieldCtx, overlayCtx, pois, clipRingsRef.current, {
                         center: [...currentMap.center] as LngLat,
                         zoom: currentMap.zoom,
                         width: cssWidth,
                         height: cssHeight,
                         projection: currentMap.projection,
+                        filterShare,
+                    });
+                };
+
+                const scheduleRedraw = () => {
+                    if (redrawFrameId !== 0) {
+                        return;
+                    }
+
+                    redrawFrameId = window.requestAnimationFrame(() => {
+                        redrawFrameId = 0;
+                        redrawCoverage();
                     });
                 };
 
@@ -513,10 +549,10 @@ export const MapView = ({
                 map.addChild(
                     new YMapListener({
                         onUpdate() {
-                            redrawCoverage();
+                            scheduleRedraw();
                         },
                         onResize() {
-                            redrawCoverage();
+                            scheduleRedraw();
                         },
                     })
                 );
@@ -535,6 +571,9 @@ export const MapView = ({
 
         return () => {
             isCancelled = true;
+            if (redrawFrameId !== 0) {
+                window.cancelAnimationFrame(redrawFrameId);
+            }
             clustererRef.current = null;
             mapRef.current = null;
             redrawCoverageRef.current = null;
@@ -608,7 +647,16 @@ export const MapView = ({
             <canvas
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 z-[5]"
-                ref={canvasRef}
+                ref={fieldCanvasRef}
+                style={{
+                    mixBlendMode: 'multiply',
+                    opacity: mode === mapModes.coverage ? 1 : 0,
+                }}
+            />
+            <canvas
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 z-[6]"
+                ref={overlayCanvasRef}
                 style={{ opacity: mode === mapModes.coverage ? 1 : 0 }}
             />
             {hasActiveIsochrone && isochroneTime != null && (

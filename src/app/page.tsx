@@ -173,7 +173,7 @@ export default function Home() {
         {isCoverageMode ? <CoverageLegend /> : null}
         <MapHint>
           {isCoverageMode
-            ? "Зелёные зоны — плотность инфраструктуры в радиусе 1 км (данные OpenStreetMap)"
+            ? "Цвет показывает суммарную доступность инфраструктуры: красный — слабо, зелёный — сильно"
             : "Выберите объект на карте, чтобы узнать о нем подробнее"}
         </MapHint>
         <div className="pointer-events-auto">

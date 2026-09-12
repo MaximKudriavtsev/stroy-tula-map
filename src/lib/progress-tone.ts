@@ -1,5 +1,5 @@
-const PROGRESS_RED = { r: 184, g: 74, b: 57 };
-const PROGRESS_GREEN = { r: 61, g: 122, b: 69 };
+export const PROGRESS_RED = { r: 184, g: 74, b: 57 };
+export const PROGRESS_GREEN = { r: 61, g: 122, b: 69 };
 
 export function getProgressTone(progress: number) {
   const t = Math.min(100, Math.max(0, progress)) / 100;
