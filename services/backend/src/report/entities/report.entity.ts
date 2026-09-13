@@ -24,6 +24,9 @@ export class Report {
   @Column({ type: 'uuid' })
   objectId: string;
 
+  @Column({ type: 'boolean', default: false })
+  isReplied: boolean;
+
   @ManyToOne(() => ObjectEntity, (object) => object.reports, {
     onDelete: 'CASCADE',
   })

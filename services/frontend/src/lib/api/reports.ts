@@ -11,8 +11,13 @@ export type ApiReport = {
   text: string;
   userId: string;
   objectId: string;
+  isReplied: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type FetchReportsFilter = {
+  isReplied?: boolean;
 };
 
 async function readErrorMessage(
@@ -33,8 +38,15 @@ async function readErrorMessage(
   return fallback;
 }
 
-export async function fetchReports(): Promise<ApiReport[]> {
-  const response = await fetch(`${API_BASE_URL}${API_ROUTES.reports}`, {
+export async function fetchReports(
+  filter?: FetchReportsFilter,
+): Promise<ApiReport[]> {
+  const url = new URL(`${API_BASE_URL}${API_ROUTES.reports}`);
+  if (filter?.isReplied !== undefined) {
+    url.searchParams.set("isReplied", String(filter.isReplied));
+  }
+
+  const response = await fetch(url.toString(), {
     cache: "no-store",
     headers: {
       ...authHeaders(),

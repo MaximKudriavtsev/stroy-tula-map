@@ -1,7 +1,25 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ReplyReportDto } from './dto/reply-report.dto';
 import { ReportService } from './report.service';
+
+function parseIsReplied(value?: string): boolean | undefined {
+  if (value === 'true') {
+    return true;
+  }
+  if (value === 'false') {
+    return false;
+  }
+  return undefined;
+}
 
 @Controller('report')
 @UseGuards(JwtAuthGuard)
@@ -9,8 +27,8 @@ export class ReportController {
   constructor(private readonly reportService: ReportService) {}
 
   @Get()
-  findAll() {
-    return this.reportService.findAll();
+  findAll(@Query('isReplied') isReplied?: string) {
+    return this.reportService.findAll(parseIsReplied(isReplied));
   }
 
   @Get(':id')

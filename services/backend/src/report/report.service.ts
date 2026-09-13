@@ -22,8 +22,9 @@ export class ReportService {
     private readonly configService: ConfigService,
   ) {}
 
-  findAll(): Promise<Report[]> {
+  findAll(isReplied?: boolean): Promise<Report[]> {
     return this.reportRepository.find({
+      ...(isReplied !== undefined ? { where: { isReplied } } : {}),
       order: { createdAt: 'DESC' },
     });
   }
@@ -85,6 +86,9 @@ export class ReportService {
       }
       throw new BadGatewayException(message);
     }
+
+    report.isReplied = true;
+    await this.reportRepository.save(report);
 
     return { ok: true };
   }
