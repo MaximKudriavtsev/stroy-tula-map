@@ -1,0 +1,59 @@
+import {
+  authHeaders,
+  clearAccessToken,
+  redirectToAdminLogin,
+} from "@/lib/api/auth";
+import { API_BASE_URL } from "@/lib/api/config";
+import { API_ROUTES } from "@/lib/api/routes";
+
+export type ApiReport = {
+  id: string;
+  text: string;
+  userId: string;
+  objectId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+async function readErrorMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  try {
+    const body = (await response.json()) as { message?: string | string[] };
+    if (typeof body.message === "string") {
+      return body.message;
+    }
+    if (Array.isArray(body.message) && body.message.length > 0) {
+      return body.message.join(", ");
+    }
+  } catch {
+    // keep fallback
+  }
+  return fallback;
+}
+
+export async function fetchReports(): Promise<ApiReport[]> {
+  const response = await fetch(`${API_BASE_URL}${API_ROUTES.reports}`, {
+    cache: "no-store",
+    headers: {
+      ...authHeaders(),
+    },
+  });
+
+  if (response.status === 401) {
+    clearAccessToken();
+    redirectToAdminLogin();
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      await readErrorMessage(
+        response,
+        `Не удалось загрузить обращения (${response.status})`,
+      ),
+    );
+  }
+
+  return (await response.json()) as ApiReport[];
+}

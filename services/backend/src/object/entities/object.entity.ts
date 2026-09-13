@@ -2,8 +2,10 @@ import type { Point } from 'geojson';
 import {
   Column,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Report } from '../../report/entities/report.entity';
 import { ObjectCategory } from '../enums/object-category.enum';
 
 @Entity('objects')
@@ -155,4 +157,7 @@ export class ObjectEntity {
   /** Фото */
   @Column({ type: 'varchar', nullable: true })
   photo?: string | null;
+
+  @OneToMany(() => Report, (report) => report.object)
+  reports?: Report[];
 }

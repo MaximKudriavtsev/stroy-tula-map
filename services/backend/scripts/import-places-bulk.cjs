@@ -172,10 +172,19 @@ async function main() {
   console.log('Category mapping:', categoryCounts);
 
   const baseUrl = process.env.API_URL ?? 'http://localhost:4000';
+  const adminJwt = process.env.ADMIN_JWT;
+  if (!adminJwt) {
+    console.error('Set ADMIN_JWT (Bearer token from POST /auth/login)');
+    process.exit(1);
+  }
+
   const url = `${baseUrl}/object/bulk`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${adminJwt}`,
+    },
     body: JSON.stringify(payload),
   });
 
