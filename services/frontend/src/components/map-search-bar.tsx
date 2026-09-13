@@ -8,11 +8,20 @@ type MapSearchBarProps = {
     onChange?: (query: string) => void;
     onSearch?: (query: string) => void;
     onCenter?: () => void;
+    className?: string;
 };
 
-export function MapSearchBar({ value, onChange, onSearch, onCenter }: MapSearchBarProps) {
+export function MapSearchBar({
+    value,
+    onChange,
+    onSearch,
+    onCenter,
+    className = '',
+}: MapSearchBarProps) {
     return (
-        <div className="flex items-center gap-sm rounded-full border border-outline-variant bg-surface-container-lowest p-sm shadow-panel md:gap-md">
+        <div
+            className={`flex h-12 items-center gap-sm rounded-full border border-outline-variant bg-surface-container-lowest py-xs pl-xs pr-md shadow-panel md:gap-md ${className}`.trim()}
+        >
             <Brand />
 
             <div

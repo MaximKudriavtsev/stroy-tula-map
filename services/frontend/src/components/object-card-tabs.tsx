@@ -46,7 +46,7 @@ export function ObjectCardTabs({
     <div className="flex min-h-0 flex-1 flex-col gap-md">
       <div
         aria-label="Разделы карточки объекта"
-        className="flex w-full shrink-0 items-center rounded-full border border-outline-variant bg-surface-container-low p-xs"
+        className="flex w-full shrink-0 items-center rounded-full border border-outline-variant bg-surface-container-low p-xs shadow-panel"
         role="tablist"
       >
         {objectCardTabOrder.map((item) => {
@@ -57,7 +57,7 @@ export function ObjectCardTabs({
               aria-selected={selected}
               className={
                 selected
-                  ? "min-w-0 flex-1 cursor-pointer rounded-full bg-primary-container px-sm py-sm type-label-md font-semibold text-on-primary transition-colors hover:bg-primary"
+                  ? "min-w-0 flex-1 cursor-pointer rounded-full bg-primary-container px-sm py-sm type-label-md font-semibold text-on-primary shadow-panel transition-colors hover:bg-primary"
                   : "min-w-0 flex-1 cursor-pointer rounded-full px-sm py-sm type-label-md text-on-surface-variant transition-colors hover:text-on-surface"
               }
               id={`object-card-tab-${item}`}

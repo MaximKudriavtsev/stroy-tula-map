@@ -33,7 +33,7 @@ export function ObjectFilterChip({
   };
 
   const selectedClass =
-    "inline-flex shrink-0 cursor-pointer items-center gap-xs rounded-full bg-primary-container px-md py-sm type-label-md text-on-primary transition-colors hover:bg-primary";
+    "inline-flex shrink-0 cursor-pointer items-center gap-xs rounded-full bg-primary-container px-md py-sm type-label-md text-on-primary shadow-panel transition-colors hover:bg-primary";
   const idleClass =
     "inline-flex shrink-0 cursor-pointer items-center gap-xs rounded-full border border-outline-variant bg-surface-container-lowest px-md py-sm type-label-md text-on-surface shadow-panel transition-colors hover:border-primary hover:bg-on-primary-container";
   const disabledClass =

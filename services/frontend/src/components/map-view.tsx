@@ -172,40 +172,132 @@ const objectsById = new Map(
     constructionObjects.map((object) => [object.id, object])
 );
 
+const MARKER_EXIT_MS = 280;
+
 const createObjectChipMarker = (
     object: ConstructionObject,
     roots: Root[],
     mapDateRef: { current: Date },
+    selectedIdRef: { current: string | null },
+    enterIdsRef: { current: Set<string> | null },
     chipRenderers: Map<string, () => void>,
+    markerElements: Map<string, HTMLElement>,
     onSelect?: (object: ConstructionObject) => void
 ) => {
+    const objectId = String(object.id);
     const element = document.createElement('div');
+    element.dataset.objectId = objectId;
+    element.className = 'map-marker-root';
     element.style.cssText =
-        'transform:translate(-50%,calc(-100% - 6px));pointer-events:auto;cursor:pointer;filter:drop-shadow(0 4px 16px rgb(108 88 76 / 0.08));';
+        'transform:translate(-50%,calc(-100% - 6px));pointer-events:auto;cursor:pointer;filter:drop-shadow(0 1px 2px rgb(28 28 24 / 0.04)) drop-shadow(0 4px 10px rgb(108 88 76 / 0.05));';
+
+    const shouldEnter = enterIdsRef.current?.has(objectId) ?? true;
+    enterIdsRef.current?.delete(objectId);
+
+    const anim = document.createElement('div');
+    anim.className = shouldEnter
+        ? 'map-marker-anim map-marker-enter'
+        : 'map-marker-anim';
+    if (shouldEnter) {
+        anim.addEventListener(
+            'animationend',
+            () => {
+                anim.classList.remove('map-marker-enter');
+            },
+            { once: true }
+        );
+    }
+    element.appendChild(anim);
+
+    const applySelectedState = () => {
+        const selected = String(selectedIdRef.current ?? '') === objectId;
+        element.classList.toggle('is-selected', selected);
+        return selected;
+    };
+
     element.addEventListener('click', (event) => {
         event.stopPropagation();
+        selectedIdRef.current = objectId;
+        syncMarkerSelection(objectId, chipRenderers);
         onSelect?.(object);
     });
 
-    const root = createRoot(element);
+    const root = createRoot(anim);
     roots.push(root);
 
     const renderChip = () => {
         const progress = progressAtDate(object, mapDateRef.current);
+        const selected = applySelectedState();
         root.render(
             <ObjectInfoChip
                 category={inferObjectCategory(object.name)}
                 name={object.name}
                 progress={progress}
+                selected={selected}
                 status={buildStatusForProgress(progress)}
             />
         );
     };
 
     renderChip();
-    chipRenderers.set(object.id, renderChip);
+    chipRenderers.set(objectId, renderChip);
+    markerElements.set(objectId, element);
 
     return element;
+};
+
+/** Класс is-selected на живых маркерах в DOM. */
+const applySelectionClasses = (selectedId: string | null) => {
+    const normalizedId = selectedId == null ? null : String(selectedId);
+
+    document.querySelectorAll<HTMLElement>('.map-marker-root[data-object-id]').forEach((element) => {
+        const objectId = element.dataset.objectId ?? '';
+        element.classList.toggle('is-selected', objectId === normalizedId);
+    });
+};
+
+/** Синхронизирует selected по живому DOM на карте + React-корням. */
+const syncMarkerSelection = (
+    selectedId: string | null,
+    chipRenderers: Map<string, () => void>
+) => {
+    applySelectionClasses(selectedId);
+
+    for (const renderChip of chipRenderers.values()) {
+        renderChip();
+    }
+};
+
+const spawnMarkerExitGhost = (
+    source: HTMLElement,
+    host: HTMLElement
+) => {
+    const sourceAnim = source.querySelector('.map-marker-anim');
+    if (!sourceAnim) {
+        return;
+    }
+
+    const sourceRect = source.getBoundingClientRect();
+    const hostRect = host.getBoundingClientRect();
+    const ghost = document.createElement('div');
+    ghost.className = 'map-marker-exit-ghost';
+    ghost.style.cssText = [
+        'position:absolute',
+        `left:${sourceRect.left - hostRect.left}px`,
+        `top:${sourceRect.top - hostRect.top}px`,
+        `width:${sourceRect.width}px`,
+        'pointer-events:none',
+        'z-index:6',
+    ].join(';');
+
+    const anim = sourceAnim.cloneNode(true) as HTMLElement;
+    anim.className = 'map-marker-anim map-marker-exit';
+    ghost.appendChild(anim);
+    host.appendChild(ghost);
+
+    window.setTimeout(() => {
+        ghost.remove();
+    }, MARKER_EXIT_MS);
 };
 
 const buildMapFeatures = (): Feature[] => {
@@ -284,6 +376,7 @@ export const MapView = ({
     onIsochroneTimeChange,
 }: MapViewProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const markerGhostHostRef = useRef<HTMLDivElement>(null);
     const fieldCanvasRef = useRef<HTMLCanvasElement>(null);
     const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
     const modeRef = useRef(mode);
@@ -291,7 +384,11 @@ export const MapView = ({
     const searchQueryRef = useRef(searchQuery);
     const mapDateRef = useRef(mapDate);
     const onObjectSelectRef = useRef(onObjectSelect);
+    const selectedIdRef = useRef<string | null>(selectedObject?.id ?? null);
+    const enterIdsRef = useRef<Set<string> | null>(null);
     const chipRenderersRef = useRef(new Map<string, () => void>());
+    const markerElementsRef = useRef(new Map<string, HTMLElement>());
+    const displayedFeaturesRef = useRef<Feature[]>([]);
     const coveragePoisRef = useRef<OsmPoi[]>(osmPois);
     const clipRingsRef = useRef<LngLat[][]>([]);
     const clustererRef = useRef<{
@@ -316,6 +413,8 @@ export const MapView = ({
     searchQueryRef.current = searchQuery;
     mapDateRef.current = mapDate;
     onObjectSelectRef.current = onObjectSelect;
+    selectedIdRef.current =
+        selectedObject?.id == null ? null : String(selectedObject.id);
     coveragePoisRef.current = filterOsmPois(osmPois, category, searchQuery);
 
     // Обеспеченность сравнивается с нормативом по каждой категории, поэтому фильтр
@@ -332,11 +431,61 @@ export const MapView = ({
         redrawCoverageRef.current?.();
     }, [provisionPois]);
 
-    // Sync selectedObject prop with ref for click handlers
     useEffect(() => {
-        // selectedObjectRef is intentionally not used for isochrone logic
-        // (that uses the prop directly)
+        selectedIdRef.current =
+            selectedObject?.id == null ? null : String(selectedObject.id);
+        syncMarkerSelection(selectedIdRef.current, chipRenderersRef.current);
     }, [selectedObject]);
+
+    // Кластеризатор часто пересоздаёт DOM без нашего update — ловим появление маркеров
+    useEffect(() => {
+        const host = markerGhostHostRef.current;
+        if (!host) {
+            return;
+        }
+
+        let frameId = 0;
+        const observer = new MutationObserver((mutations) => {
+            const hasMarkerChange = mutations.some((mutation) =>
+                [...mutation.addedNodes, ...mutation.removedNodes].some((node) => {
+                    if (!(node instanceof HTMLElement)) {
+                        return false;
+                    }
+                    return (
+                        node.classList.contains('map-marker-root') ||
+                        Boolean(node.querySelector?.('.map-marker-root'))
+                    );
+                })
+            );
+
+            if (!hasMarkerChange) {
+                return;
+            }
+
+            if (frameId !== 0) {
+                return;
+            }
+
+            frameId = window.requestAnimationFrame(() => {
+                frameId = 0;
+                // Только CSS-класс: полный renderChip здесь зациклил бы observer
+                applySelectionClasses(selectedIdRef.current);
+                const selectedId = selectedIdRef.current;
+                if (selectedId) {
+                    chipRenderersRef.current.get(selectedId)?.();
+                }
+            });
+        });
+
+        observer.observe(host, { childList: true, subtree: true });
+
+        return () => {
+            observer.disconnect();
+            if (frameId !== 0) {
+                window.cancelAnimationFrame(frameId);
+            }
+        };
+    }, []);
 
     const { state: isochroneState, hasActiveIsochrone } = useIsochrone(
         isochroneTime != null ? (selectedObject?.longitude ?? null) : null,
@@ -500,6 +649,8 @@ export const MapView = ({
                 const allFeatures = buildMapFeatures();
                 allFeaturesRef.current = allFeatures;
                 chipRenderersRef.current.clear();
+                markerElementsRef.current.clear();
+                displayedFeaturesRef.current = [];
 
                 const resolveClusterFeatures = () => {
                     if (isHeatmapMode(modeRef.current)) {
@@ -515,6 +666,7 @@ export const MapView = ({
                 };
 
                 const features = resolveClusterFeatures();
+                displayedFeaturesRef.current = features;
 
                 const marker = (feature: Feature) => {
                     const object = objectsByIdLocal.get(String(feature.id));
@@ -538,6 +690,11 @@ export const MapView = ({
                                         duration: 500,
                                     });
                                 }
+                                selectedIdRef.current = String(object.id);
+                                syncMarkerSelection(
+                                    selectedIdRef.current,
+                                    chipRenderersRef.current
+                                );
                                 onObjectSelectRef.current?.(object);
                             },
                         },
@@ -545,7 +702,10 @@ export const MapView = ({
                             object,
                             markerRoots,
                             mapDateRef,
+                            selectedIdRef,
+                            enterIdsRef,
                             chipRenderersRef.current,
+                            markerElementsRef.current,
                             (selected) => {
                                 if (map) {
                                     map.setLocation({
@@ -553,6 +713,11 @@ export const MapView = ({
                                         duration: 500,
                                     });
                                 }
+                                selectedIdRef.current = String(selected.id);
+                                syncMarkerSelection(
+                                    selectedIdRef.current,
+                                    chipRenderersRef.current
+                                );
                                 onObjectSelectRef.current?.(selected);
                             }
                         )
@@ -739,6 +904,7 @@ export const MapView = ({
 
     useEffect(() => {
         const clusterer = clustererRef.current;
+        const ghostHost = markerGhostHostRef.current;
         if (!clusterer || allFeaturesRef.current.length === 0) {
             return;
         }
@@ -749,7 +915,7 @@ export const MapView = ({
             renderChip();
         }
 
-        const features = isHeatmapMode(mode)
+        const nextFeatures = isHeatmapMode(mode)
             ? []
             : filterMapFeatures(
                   allFeaturesRef.current,
@@ -758,7 +924,49 @@ export const MapView = ({
                   mapDate
               );
 
-        clusterer.update({ features });
+        const previous = displayedFeaturesRef.current;
+        const previousIds = new Set(previous.map((feature) => String(feature.id)));
+        const nextIds = new Set(nextFeatures.map((feature) => String(feature.id)));
+        const removed = previous.filter(
+            (feature) => !nextIds.has(String(feature.id))
+        );
+        const addedIds = new Set(
+            nextFeatures
+                .map((feature) => String(feature.id))
+                .filter((id) => !previousIds.has(id))
+        );
+
+        const prefersReducedMotion =
+            typeof window !== 'undefined' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (!prefersReducedMotion && ghostHost && removed.length > 0) {
+            for (const feature of removed) {
+                const element = markerElementsRef.current.get(String(feature.id));
+                if (element) {
+                    spawnMarkerExitGhost(element, ghostHost);
+                }
+            }
+        }
+
+        // Popup только у реально новых объектов, не у тех, что уже были на карте
+        enterIdsRef.current = addedIds;
+        clusterer.update({ features: nextFeatures });
+        displayedFeaturesRef.current = nextFeatures;
+
+        for (const objectId of [...markerElementsRef.current.keys()]) {
+            if (!nextIds.has(objectId)) {
+                markerElementsRef.current.delete(objectId);
+                chipRenderersRef.current.delete(objectId);
+            }
+        }
+
+        // Кластеризатор мог пересоздать DOM — заново навешиваем selected
+        syncMarkerSelection(selectedIdRef.current, chipRenderersRef.current);
+        window.requestAnimationFrame(() => {
+            syncMarkerSelection(selectedIdRef.current, chipRenderersRef.current);
+        });
+
         redrawCoverageRef.current?.();
     }, [category, searchQuery, mode, mapDate]);
 
@@ -903,7 +1111,7 @@ export const MapView = ({
     }
 
     return (
-        <div className="relative h-dvh w-full">
+        <div className="relative z-0 h-dvh w-full" ref={markerGhostHostRef}>
             <div ref={containerRef} className="h-dvh w-full" />
             <canvas
                 aria-hidden="true"

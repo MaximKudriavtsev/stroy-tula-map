@@ -20,7 +20,7 @@ export function ConstructionStatusBar({
   return (
     <div
       aria-label="Сводка по объектам строительства"
-      className="flex h-full max-w-full items-center gap-md overflow-hidden rounded-full border border-outline-variant bg-surface-container-lowest px-md shadow-panel"
+      className="flex h-12 max-w-full items-center gap-md overflow-hidden rounded-full border border-outline-variant bg-surface-container-lowest px-md shadow-panel"
     >
       <p className="flex min-w-0 items-center gap-sm type-label-md text-success">
         <span

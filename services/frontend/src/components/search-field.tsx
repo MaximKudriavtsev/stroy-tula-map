@@ -39,7 +39,7 @@ export function SearchField({
   return (
     <form
       aria-label="Поиск по карте"
-      className="relative flex w-72 max-w-full items-center gap-sm md:w-80"
+      className="relative flex w-80 max-w-full items-center gap-sm md:w-96"
       onSubmit={handleSubmit}
     >
       <SearchIcon className="size-md shrink-0 text-outline" />

@@ -62,14 +62,22 @@ function ReadinessIcon({ className }: { className?: string }) {
       fill="none"
       viewBox="0 0 20 20"
     >
-      <path
-        d="M10 2.4 11.7 3l1.8-.2.9 1.6 1.6.9-.2 1.8.6 1.7-.6 1.7.2 1.8-1.6.9-.9 1.6-1.8-.2L10 17.6 8.3 17l-1.8.2-.9-1.6-1.6-.9.2-1.8L4 10.2l.6-1.7-.2-1.8 1.6-.9.9-1.6 1.8.2L10 2.4Z"
+      <circle
+        cx="10"
+        cy="10"
+        opacity="0.28"
+        r="7"
         stroke="currentColor"
-        strokeLinejoin="round"
-        strokeWidth="1.4"
+        strokeWidth="1.5"
       />
       <path
-        d="m7.2 10.1 1.9 1.9 3.7-3.8"
+        d="M10 3a7 7 0 0 1 7 7"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M10 6.2v3.8l2.6 1.6"
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
