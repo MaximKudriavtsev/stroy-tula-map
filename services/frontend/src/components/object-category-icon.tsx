@@ -139,18 +139,47 @@ function InfrastructureIcon({ className }: { className?: string }) {
       fill="none"
       viewBox="0 0 16 16"
     >
+      {/* Опора */}
       <path
-        d="M10.2 2.8a2.4 2.4 0 0 1 3 3L9.4 9.6l-3-3 3.8-3.8Z"
+        d="M4.2 14V5.2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+      {/* Стрела */}
+      <path
+        d="M4.2 5.2h8.2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+      {/* Кабина */}
+      <path
+        d="M3.2 5.2h2.2v2.4H3.2z"
         stroke="currentColor"
         strokeLinejoin="round"
-        strokeWidth="1.4"
+        strokeWidth="1.3"
+      />
+      {/* Трос и крюк */}
+      <path
+        d="M10.8 5.2v5.2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.3"
       />
       <path
-        d="M6.2 6.8 2.6 13.4l6.6-3.6"
+        d="M9.7 10.4h2.2M10.2 10.4v1.4c0 .6.5 1.1 1.1 1.1"
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="1.4"
+        strokeWidth="1.3"
+      />
+      {/* База */}
+      <path
+        d="M2.4 14h3.6"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.5"
       />
     </svg>
   );

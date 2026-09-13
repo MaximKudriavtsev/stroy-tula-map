@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ConstructionStatusBar } from "@/components/construction-status-bar";
 import { CoverageLegend } from "@/components/coverage-legend";
 import { DateSelector } from "@/components/date-selector";
@@ -89,11 +89,17 @@ export default function Home() {
     ? countOsmPoisByCategory(searchedPois)
     : countObjectsByCategory(datedObjects);
 
+  const prevCardOpenRef = useRef(false);
+
   useEffect(() => {
-    if (isCardOpen || !selectedObject) {
+    const wasOpen = prevCardOpenRef.current;
+    prevCardOpenRef.current = isCardOpen;
+
+    if (isCardOpen || !wasOpen || !selectedObject) {
       return;
     }
 
+    // Сбрасываем выбор только при закрытии карточки, не в кадре открытия.
     const timeoutId = window.setTimeout(() => {
       setSelectedObject(null);
     }, HUD_TRANSITION_MS);
@@ -121,7 +127,6 @@ export default function Home() {
       return;
     }
 
-    setIsCardOpen(false);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setIsCardOpen(true);
@@ -177,28 +182,41 @@ export default function Home() {
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-margin pt-md md:px-margin-desktop">
         <div className="flex w-full flex-col items-start gap-sm">
-          <div className="relative flex w-full items-stretch justify-between gap-sm md:gap-md">
-            <div className="pointer-events-auto min-w-0">
+          <div className="relative flex w-full items-center justify-between gap-sm md:gap-md">
+            <div className="pointer-events-auto min-w-0 shrink">
               <MapSearchBar
                 onChange={setSearchQuery}
                 onSearch={setSearchQuery}
                 value={searchQuery}
               />
             </div>
-            <div
-              aria-hidden={!showStatusBar}
-              className={`pointer-events-auto absolute inset-y-0 right-0 flex transition-[opacity,transform] duration-300 ease-out ${
-                showStatusBar
-                  ? "translate-x-0 opacity-100"
-                  : "pointer-events-none translate-x-3 opacity-0"
-              }`}
-              inert={!showStatusBar ? true : undefined}
-            >
-              <ConstructionStatusBar
-                buildingCount={buildingCount}
-                openingCount={openingCount}
-                year={openingYear}
-              />
+            <div className="flex shrink-0 items-center gap-sm">
+              <div
+                aria-hidden={!showStatusBar}
+                className={`pointer-events-auto transition-[opacity,transform] duration-300 ease-out ${
+                  showStatusBar
+                    ? "hidden translate-x-0 opacity-100 md:flex"
+                    : "hidden"
+                }`}
+                inert={!showStatusBar ? true : undefined}
+              >
+                <ConstructionStatusBar
+                  buildingCount={buildingCount}
+                  openingCount={openingCount}
+                  year={openingYear}
+                />
+              </div>
+              <div
+                aria-hidden={isCardOpen}
+                className={`pointer-events-auto transition-[opacity,transform] duration-300 ease-out ${
+                  isCardOpen
+                    ? "pointer-events-none translate-x-3 opacity-0"
+                    : "translate-x-0 opacity-100"
+                }`}
+                inert={isCardOpen ? true : undefined}
+              >
+                <MapModeSwitch onChange={handleModeChange} value={mapMode} />
+              </div>
             </div>
           </div>
           <div
@@ -210,7 +228,6 @@ export default function Home() {
             }`}
             inert={isCardOpen ? true : undefined}
           >
-            <MapModeSwitch onChange={handleModeChange} value={mapMode} />
             <ObjectFilterBar
               counts={categoryCounts}
               onChange={setCategory}
@@ -233,12 +250,14 @@ export default function Home() {
         inert={isCardOpen ? true : undefined}
       >
         <div className="relative flex w-full flex-col items-center gap-sm">
+          <MapHint showHand={isObjectsMode}>{mapHintByMode[mapMode]}</MapHint>
+
           <div
             aria-hidden={!isProvisionMode}
-            className={`absolute bottom-full left-1/2 mb-sm -translate-x-1/2 transition-[opacity,transform] duration-300 ease-out ${
+            className={`transition-[opacity,transform] duration-300 ease-out ${
               isProvisionMode
                 ? "translate-y-0 opacity-100"
-                : "pointer-events-none translate-y-2 opacity-0"
+                : "pointer-events-none absolute translate-y-2 opacity-0"
             }`}
             inert={!isProvisionMode ? true : undefined}
           >
@@ -247,17 +266,15 @@ export default function Home() {
 
           <div
             aria-hidden={!isCoverageMode}
-            className={`absolute bottom-full left-1/2 mb-sm -translate-x-1/2 transition-[opacity,transform] duration-300 ease-out ${
+            className={`transition-[opacity,transform] duration-300 ease-out ${
               isCoverageMode
                 ? "translate-y-0 opacity-100"
-                : "pointer-events-none translate-y-2 opacity-0"
+                : "pointer-events-none absolute translate-y-2 opacity-0"
             }`}
             inert={!isCoverageMode ? true : undefined}
           >
             <CoverageLegend />
           </div>
-
-          <MapHint showHand={isObjectsMode}>{mapHintByMode[mapMode]}</MapHint>
 
           <div className="pointer-events-auto">
             <DateSelector

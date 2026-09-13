@@ -73,7 +73,7 @@ export function ObjectCard({
     <aside
       aria-hidden={!open}
       aria-label="Карточка объекта"
-      className={`pointer-events-auto absolute top-md right-margin z-30 flex w-[min(100%-2rem,26rem)] flex-col overflow-hidden border border-outline-variant bg-surface-container-lowest shadow-overlay transition-[max-height,border-radius,opacity,transform] duration-300 ease-in-out md:right-margin-desktop ${
+      className={`pointer-events-auto absolute top-md right-sm z-40 flex w-[min(100%-1rem,26rem)] flex-col overflow-hidden border border-outline-variant bg-surface-container-lowest shadow-overlay transition-[max-height,border-radius,opacity,transform] duration-300 ease-in-out ${
         collapsed
           ? "bottom-auto max-h-[4.75rem] rounded-[1.75rem]"
           : "bottom-md max-h-[calc(100dvh-2rem)] rounded-[2rem]"

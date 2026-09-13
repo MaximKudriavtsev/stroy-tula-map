@@ -137,8 +137,8 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2.5rem;
 
-  --shadow-panel: 0 4px 16px rgb(108 88 76 / 0.08);
-  --shadow-overlay: 0 12px 32px rgb(108 88 76 / 0.14);
+  --shadow-panel: 0 1px 2px rgb(28 28 24 / 0.04), 0 3px 10px rgb(108 88 76 / 0.05);
+  --shadow-overlay: 0 4px 16px rgb(28 28 24 / 0.06), 0 12px 28px rgb(108 88 76 / 0.08);
 }
 
 @utility tnum {
@@ -218,6 +218,111 @@
   letter-spacing: var(--text-mono-metric--letter-spacing);
   font-weight: var(--text-mono-metric--font-weight);
   font-feature-settings: "tnum" 1;
+}
+
+@keyframes map-hint-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-6px);
+  }
+  40% {
+    transform: translateY(0);
+  }
+  55% {
+    transform: translateY(-3px);
+  }
+  70% {
+    transform: translateY(0);
+  }
+}
+
+@utility animate-map-hint-bounce {
+  animation: map-hint-bounce 2.4s ease-in-out infinite;
+}
+
+@keyframes map-marker-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.35) translateY(14px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.08) translateY(-3px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes map-marker-shrink {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3) translateY(10px);
+  }
+}
+
+@keyframes map-marker-selected-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-5px);
+  }
+  60% {
+    transform: translateY(-2px);
+  }
+}
+
+.map-marker-anim {
+  transform-origin: 50% 100%;
+  will-change: transform, opacity;
+}
+
+.map-marker-enter {
+  animation: map-marker-pop 0.45s cubic-bezier(0.34, 1.45, 0.64, 1) both;
+}
+
+.map-marker-exit {
+  animation: map-marker-shrink 0.28s ease-in both;
+  pointer-events: none;
+}
+
+.map-marker-exit-ghost {
+  transform-origin: 50% 100%;
+}
+
+.map-marker-root.is-selected {
+  z-index: 2 !important;
+  filter: drop-shadow(0 2px 4px rgb(28 28 24 / 0.08))
+    drop-shadow(0 8px 16px rgb(108 88 76 / 0.12)) !important;
+}
+
+.map-marker-model-wrap.is-selected-model,
+.map-marker-root.is-selected .map-marker-model-wrap {
+  animation: map-marker-selected-bounce 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-map-hint-bounce,
+  .map-marker-enter,
+  .map-marker-exit,
+  .map-marker-model-wrap.is-selected-model,
+  .map-marker-root.is-selected .map-marker-model-wrap {
+    animation: none;
+  }
+
+  .map-marker-exit {
+    opacity: 0;
+  }
 }
 
 html,

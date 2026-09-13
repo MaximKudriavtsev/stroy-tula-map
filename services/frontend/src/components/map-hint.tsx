@@ -9,7 +9,9 @@ export function MapHint({
 }: MapHintProps) {
   return (
     <p
-      className="inline-flex max-w-full items-center gap-sm rounded-full border border-outline-variant bg-surface-container-lowest px-md py-sm shadow-panel type-body-md text-on-surface"
+      className={`inline-flex max-w-full items-center gap-sm rounded-full border border-outline-variant bg-surface-container-lowest px-md py-sm shadow-panel type-body-md text-on-surface ${
+        showHand ? "animate-map-hint-bounce" : ""
+      }`}
       role="status"
     >
       {showHand ? (
