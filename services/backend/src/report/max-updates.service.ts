@@ -9,6 +9,7 @@ import { ReportService } from './report.service';
 
 const MAX_UPDATES_URL = 'https://platform-api2.max.ru/updates';
 const POLL_TIMEOUT_MS = 30;
+const ERROR_BODY_LIMIT = 500;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -34,6 +35,55 @@ type MaxUpdatesResponse = {
   marker?: number | null;
 };
 
+type ErrorLike = Error & {
+  code?: string;
+  errno?: number;
+  syscall?: string;
+  errors?: unknown[];
+};
+
+const describeErrorNode = (error: ErrorLike): string => {
+  const details = [`${error.name}: ${error.message}`];
+  if (error.code) {
+    details.push(`code=${error.code}`);
+  }
+  if (error.errno !== undefined) {
+    details.push(`errno=${error.errno}`);
+  }
+  if (error.syscall) {
+    details.push(`syscall=${error.syscall}`);
+  }
+  return details.join(' ');
+};
+
+// `fetch` прячет реальную причину (TLS, DNS, отказ соединения) в цепочке cause.
+const describeError = (error: unknown): string => {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+
+  const chain: string[] = [];
+  let current: Error | undefined = error;
+
+  while (current && chain.length < 5) {
+    const node = current as ErrorLike;
+    chain.push(describeErrorNode(node));
+
+    const aggregated = node.errors?.filter(
+      (item): item is Error => item instanceof Error,
+    );
+    if (aggregated?.length) {
+      chain.push(
+        aggregated.map((item) => describeErrorNode(item)).join(' | '),
+      );
+    }
+
+    current = node.cause instanceof Error ? node.cause : undefined;
+  }
+
+  return chain.join(' <- caused by ');
+};
+
 @Injectable()
 export class MaxUpdatesService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MaxUpdatesService.name);
@@ -52,6 +102,12 @@ export class MaxUpdatesService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn('MAX_BOT_TOKEN is empty — MAX polling is disabled');
       return;
     }
+
+    this.logger.log(
+      `MAX polling started: ${MAX_UPDATES_URL} (NODE_EXTRA_CA_CERTS=${
+        process.env.NODE_EXTRA_CA_CERTS ?? 'not set'
+      })`,
+    );
 
     this.polling = true;
     this.abortController = new AbortController();
@@ -79,9 +135,7 @@ export class MaxUpdatesService implements OnModuleInit, OnModuleDestroy {
           url.searchParams.set('marker', String(marker));
         }
 
-        this.logger.log('MAX POOLING URL: ' + url);
-        this.logger.log('MAX POOLING TOKEN: ' + token);
-
+        this.logger.debug(`MAX polling request: ${url.toString()}`);
 
         const response = await fetch(url, {
           headers: { Authorization: token },
@@ -89,7 +143,10 @@ export class MaxUpdatesService implements OnModuleInit, OnModuleDestroy {
         });
 
         if (!response.ok) {
-          this.logger.error(`MAX /updates failed: ${response.status}`);
+          const errorBody = await this.readErrorBody(response);
+          this.logger.error(
+            `MAX /updates failed: ${response.status} ${response.statusText} body=${errorBody}`,
+          );
           await this.delay(3000);
           continue;
         }
@@ -110,7 +167,7 @@ export class MaxUpdatesService implements OnModuleInit, OnModuleDestroy {
           return;
         }
         this.logger.error(
-          'MAX polling error',
+          `MAX /updates request failed: ${describeError(error)}`,
           error instanceof Error ? error.stack : undefined,
         );
         await this.delay(3000);
@@ -154,6 +211,15 @@ export class MaxUpdatesService implements OnModuleInit, OnModuleDestroy {
     const saved = await this.reportService.createFromBot(userId, objectId, text);
     if (saved) {
       this.logger.log(`Saved report ${saved.id} from user ${userId}`);
+    }
+  }
+
+  private async readErrorBody(response: Response): Promise<string> {
+    try {
+      const text = await response.text();
+      return text.trim().slice(0, ERROR_BODY_LIMIT) || '<empty>';
+    } catch (error) {
+      return `<unreadable: ${describeError(error)}>`;
     }
   }
 
