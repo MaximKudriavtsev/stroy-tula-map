@@ -1,15 +1,18 @@
+import { getMaxBotReportUrl } from "@/lib/max-bot";
+
 type ObjectCardFooterProps = {
   progress: number;
   onPassportClick?: () => void;
-  onReportClick?: () => void;
 };
 
 export function ObjectCardFooter({
   progress,
   onPassportClick,
-  onReportClick,
 }: ObjectCardFooterProps) {
   const percent = Math.round(Math.min(100, Math.max(0, progress)));
+  const reportUrl = getMaxBotReportUrl();
+  const reportClassName =
+    "inline-flex h-xl w-full cursor-pointer items-center justify-center gap-sm rounded-full bg-primary-container px-md type-label-md font-semibold text-on-primary transition-colors hover:bg-primary";
 
   return (
     <div className="mt-auto flex shrink-0 flex-col gap-md border-t border-outline-variant px-md py-md">
@@ -31,14 +34,22 @@ export function ObjectCardFooter({
         </button>
       </div>
 
-      <button
-        className="inline-flex h-xl w-full cursor-pointer items-center justify-center gap-sm rounded-full bg-primary-container px-md type-label-md font-semibold text-on-primary transition-colors hover:bg-primary"
-        onClick={onReportClick}
-        type="button"
-      >
-        <ChatIcon className="size-md shrink-0" />
-        Сообщить о проблеме
-      </button>
+      {reportUrl ? (
+        <a
+          className={reportClassName}
+          href={reportUrl}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          <ChatIcon className="size-md shrink-0" />
+          Сообщить о проблеме
+        </a>
+      ) : (
+        <button className={reportClassName} disabled type="button">
+          <ChatIcon className="size-md shrink-0" />
+          Сообщить о проблеме
+        </button>
+      )}
     </div>
   );
 }

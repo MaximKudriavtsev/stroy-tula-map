@@ -1,3 +1,8 @@
+import {
+  authHeaders,
+  clearAccessToken,
+  redirectToAdminLogin,
+} from "@/lib/api/auth";
 import { API_BASE_URL } from "@/lib/api/config";
 import { API_ROUTES } from "@/lib/api/routes";
 import type { ApiObject } from "@/lib/api/types";
@@ -19,6 +24,13 @@ async function readErrorMessage(
     // keep fallback
   }
   return fallback;
+}
+
+async function handleUnauthorized(response: Response): Promise<void> {
+  if (response.status === 401) {
+    clearAccessToken();
+    redirectToAdminLogin();
+  }
 }
 
 export async function fetchObjects(): Promise<ApiObject[]> {
@@ -63,11 +75,13 @@ export async function createObject(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(),
     },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
+    await handleUnauthorized(response);
     throw new Error(
       await readErrorMessage(
         response,
@@ -89,12 +103,14 @@ export async function updateObject(
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
+        ...authHeaders(),
       },
       body: JSON.stringify(payload),
     },
   );
 
   if (!response.ok) {
+    await handleUnauthorized(response);
     throw new Error(
       await readErrorMessage(
         response,
