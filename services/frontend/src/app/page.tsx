@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { YMap } from "@yandex/ymaps3-types";
 import { ConstructionStatusBar } from "@/components/construction-status-bar";
 import { CoverageLegend } from "@/components/coverage-legend";
 import { DateSelector } from "@/components/date-selector";
@@ -90,6 +91,7 @@ export default function Home() {
     : countObjectsByCategory(datedObjects);
 
   const prevCardOpenRef = useRef(false);
+  const mapRef = useRef<YMap | null>(null);
 
   useEffect(() => {
     const wasOpen = prevCardOpenRef.current;
@@ -141,6 +143,13 @@ export default function Home() {
 
   const handleShowIsochrone = () => {
     setIsochroneTime(10);
+    if (mapRef.current && selectedObject) {
+      mapRef.current.setLocation({
+        center: [selectedObject.longitude, selectedObject.latitude] as [number, number],
+        zoom: 14,
+        duration: 500,
+      });
+    }
   };
 
   const handleHideIsochrone = () => {
@@ -175,6 +184,7 @@ export default function Home() {
         mapDate={mapDate}
         mode={mapMode}
         onIsochroneTimeChange={handleIsochroneTimeChange}
+        onMapReady={(map) => { mapRef.current = map; }}
         onObjectSelect={handleObjectSelect}
         searchQuery={searchQuery}
         selectedObject={selectedObject}

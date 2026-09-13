@@ -363,6 +363,7 @@ type MapViewProps = {
     selectedObject?: ConstructionObject | null;
     isochroneTime?: IsochroneTime | null;
     onIsochroneTimeChange?: (time: IsochroneTime) => void;
+    onMapReady?: (map: YMap | null) => void;
 };
 
 export const MapView = ({
@@ -374,6 +375,7 @@ export const MapView = ({
     selectedObject,
     isochroneTime,
     onIsochroneTimeChange,
+    onMapReady,
 }: MapViewProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const markerGhostHostRef = useRef<HTMLDivElement>(null);
@@ -558,6 +560,7 @@ export const MapView = ({
                     },
                 });
                 mapRef.current = map;
+                onMapReady?.(map);
 
                 map.addChild(new YMapDefaultSchemeLayer({}))
                     .addChild(new YMapDefaultFeaturesLayer({}))
@@ -894,6 +897,7 @@ export const MapView = ({
             }
             clustererRef.current = null;
             mapRef.current = null;
+            onMapReady?.(null);
             redrawCoverageRef.current = null;
             markerRoots.forEach((root) => {
                 root.unmount();
