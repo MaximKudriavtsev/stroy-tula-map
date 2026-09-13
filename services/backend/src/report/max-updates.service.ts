@@ -42,46 +42,74 @@ type ErrorLike = Error & {
   errors?: unknown[];
 };
 
-const describeErrorNode = (error: ErrorLike): string => {
-  const details = [`${error.name}: ${error.message}`];
-  if (error.code) {
-    details.push(`code=${error.code}`);
+const describeUnknownNode = (value: unknown): string => {
+  if (value instanceof Error) {
+    const node = value as ErrorLike;
+    const details = [
+      node.message ? `${node.name}: ${node.message}` : node.name,
+    ];
+    if (node.code) {
+      details.push(`code=${node.code}`);
+    }
+    if (node.errno !== undefined) {
+      details.push(`errno=${node.errno}`);
+    }
+    if (node.syscall) {
+      details.push(`syscall=${node.syscall}`);
+    }
+    return details.join('; ');
   }
-  if (error.errno !== undefined) {
-    details.push(`errno=${error.errno}`);
+
+  if (typeof value === 'object' && value !== null) {
+    const node = value as {
+      message?: unknown;
+      code?: unknown;
+      errno?: unknown;
+      syscall?: unknown;
+    };
+    const details: string[] = [];
+    if (node.message != null) {
+      details.push(`cause=${String(node.message)}`);
+    }
+    if (node.code != null) {
+      details.push(`code=${String(node.code)}`);
+    }
+    if (node.errno != null) {
+      details.push(`errno=${String(node.errno)}`);
+    }
+    if (node.syscall != null) {
+      details.push(`syscall=${String(node.syscall)}`);
+    }
+    return details.length > 0 ? details.join('; ') : JSON.stringify(value);
   }
-  if (error.syscall) {
-    details.push(`syscall=${error.syscall}`);
-  }
-  return details.join(' ');
+
+  return String(value);
 };
 
 // `fetch` прячет реальную причину (TLS, DNS, отказ соединения) в цепочке cause.
 const describeError = (error: unknown): string => {
-  if (!(error instanceof Error)) {
-    return String(error);
-  }
-
   const chain: string[] = [];
-  let current: Error | undefined = error;
+  let current: unknown = error;
 
-  while (current && chain.length < 5) {
-    const node = current as ErrorLike;
-    chain.push(describeErrorNode(node));
+  while (current !== undefined && current !== null && chain.length < 5) {
+    chain.push(describeUnknownNode(current));
 
-    const aggregated = node.errors?.filter(
-      (item): item is Error => item instanceof Error,
-    );
-    if (aggregated?.length) {
-      chain.push(
-        aggregated.map((item) => describeErrorNode(item)).join(' | '),
+    if (current instanceof Error) {
+      const node = current as ErrorLike;
+      const aggregated = node.errors?.filter(
+        (item): item is Error => item instanceof Error,
       );
+      if (aggregated?.length) {
+        chain.push(aggregated.map((item) => describeUnknownNode(item)).join(' | '));
+      }
+      current = node.cause;
+      continue;
     }
 
-    current = node.cause instanceof Error ? node.cause : undefined;
+    break;
   }
 
-  return chain.join(' <- caused by ');
+  return chain.join('; cause=');
 };
 
 @Injectable()
@@ -166,9 +194,11 @@ export class MaxUpdatesService implements OnModuleInit, OnModuleDestroy {
         if (error instanceof Error && error.name === 'AbortError') {
           return;
         }
+        // Стек undici для `fetch failed` бесполезен, вся суть в цепочке cause.
+        const hasCause = error instanceof Error && error.cause !== undefined;
         this.logger.error(
-          `MAX /updates request failed: ${describeError(error)}`,
-          error instanceof Error ? error.stack : undefined,
+          `MAX /updates fetch failed: ${describeError(error)}`,
+          !hasCause && error instanceof Error ? error.stack : undefined,
         );
         await this.delay(3000);
       }
