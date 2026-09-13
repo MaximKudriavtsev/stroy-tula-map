@@ -6,6 +6,12 @@ services:
     ports:
       - "127.0.0.1:4000:3000"
     restart: unless-stopped
+    # Бандл Минцифры на хосте:
+    #   cat /usr/local/share/ca-certificates/russian-trusted/*.crt > /opt/russian-trusted-ca.pem
+    volumes:
+      - /opt/russian-trusted-ca.pem:/certs/russian-trusted-ca.pem:ro
+    environment:
+      NODE_EXTRA_CA_CERTS: /certs/russian-trusted-ca.pem
   web:
     ports:
       - "127.0.0.1:3000:3000"
