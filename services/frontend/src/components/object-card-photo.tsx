@@ -27,7 +27,7 @@ export function ObjectCardPhoto({
     <figure className="relative shrink-0 overflow-hidden">
       <img
         alt={name}
-        className="aspect-[16/9] w-full object-cover"
+        className="aspect-[2/1] w-full object-cover md:aspect-[16/9]"
         src={photoSrc}
       />
 

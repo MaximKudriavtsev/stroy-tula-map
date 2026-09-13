@@ -23,15 +23,15 @@ const TIME_LABELS: Record<IsochroneTime, string> = {
 
 export function IsochroneTimeSelector({ selectedTime, onTimeChange }: IsochroneTimeSelectorProps) {
   return (
-    <div className="inline-flex overflow-hidden rounded-full border border-outline-variant bg-surface-container-lowest shadow-panel">
+    <div className="mx-auto flex w-full overflow-hidden rounded-full border border-outline-variant bg-surface-container-lowest shadow-panel md:w-auto">
       {ISOCHRONE_TIMES.map((time) => (
         <button
           key={time}
           aria-pressed={selectedTime === time}
           className={
             selectedTime === time
-              ? "px-md py-sm type-label-md bg-primary-container text-on-primary-container transition-colors hover:bg-primary"
-              : "px-md py-sm type-label-md text-on-surface transition-colors hover:bg-on-primary-container"
+              ? "min-w-0 flex-1 whitespace-nowrap px-xs py-sm type-label-md bg-primary-container text-on-primary-container transition-colors hover:bg-primary md:flex-none md:px-md"
+              : "min-w-0 flex-1 whitespace-nowrap px-xs py-sm type-label-md text-on-surface transition-colors hover:bg-on-primary-container md:flex-none md:px-md"
           }
           onClick={() => onTimeChange(time)}
           type="button"

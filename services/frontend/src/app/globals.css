@@ -145,6 +145,14 @@
   font-feature-settings: "tnum" 1;
 }
 
+@utility pb-safe {
+  padding-bottom: max(var(--spacing-md), env(safe-area-inset-bottom, 0px));
+}
+
+@utility bottom-safe {
+  bottom: max(var(--spacing-md), env(safe-area-inset-bottom, 0px));
+}
+
 @utility type-display-lg {
   font-size: var(--text-display-lg);
   line-height: var(--text-display-lg--line-height);

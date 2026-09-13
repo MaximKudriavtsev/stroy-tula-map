@@ -73,14 +73,14 @@ export function ObjectCard({
     <aside
       aria-hidden={!open}
       aria-label="Карточка объекта"
-      className={`pointer-events-auto absolute top-md right-sm z-40 flex w-[min(100%-1rem,26rem)] flex-col overflow-hidden border border-outline-variant bg-surface-container-lowest shadow-overlay transition-[max-height,border-radius,opacity,transform] duration-300 ease-in-out ${
+      className={`pointer-events-auto absolute z-40 flex flex-col overflow-hidden border border-outline-variant bg-surface-container-lowest shadow-overlay transition-[max-height,border-radius,opacity,transform] duration-300 ease-in-out inset-x-sm w-auto md:inset-x-auto md:right-sm md:w-[min(100%-1rem,26rem)] ${
         collapsed
-          ? "bottom-auto max-h-[4.75rem] rounded-[1.75rem]"
-          : "bottom-md max-h-[calc(100dvh-2rem)] rounded-[2rem]"
+          ? "top-[calc(var(--spacing-sm)+3rem+var(--spacing-sm))] bottom-auto max-h-[4.75rem] rounded-[1.75rem] md:top-md"
+          : "top-[calc(var(--spacing-sm)+3rem+var(--spacing-sm))] bottom-[max(var(--spacing-sm),env(safe-area-inset-bottom,0px))] max-h-none rounded-[1.5rem] md:top-md md:bottom-md md:max-h-[calc(100dvh-2rem)] md:rounded-[2rem]"
       } ${
         open
-          ? "translate-x-0 opacity-100"
-          : "pointer-events-none translate-x-6 opacity-0"
+          ? "translate-x-0 translate-y-0 opacity-100"
+          : "pointer-events-none translate-y-6 opacity-0 md:translate-x-6 md:translate-y-0"
       }`}
     >
       <div

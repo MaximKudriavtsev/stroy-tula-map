@@ -2,6 +2,7 @@ import Image from "next/image";
 
 type BrandProps = {
   showTagline?: boolean;
+  compactOnMobile?: boolean;
   className?: string;
 };
 
@@ -18,17 +19,23 @@ export function BrandMark() {
   );
 }
 
-export function Brand({ showTagline = true, className = "" }: BrandProps) {
+export function Brand({
+  showTagline = true,
+  compactOnMobile = false,
+  className = "",
+}: BrandProps) {
   return (
     <div className={`flex shrink-0 items-center gap-sm ${className}`.trim()}>
       <BrandMark />
-      <div className="min-w-0">
+      <div
+        className={`min-w-0 ${compactOnMobile ? "hidden md:block" : ""}`.trim()}
+      >
         <p className="type-title-sm">
           <span className="text-primary">Город.</span>
           <span>В Деле</span>
         </p>
         {showTagline ? (
-          <p className="hidden type-body-sm text-on-surface-variant sm:block">
+          <p className="type-body-sm text-on-surface-variant">
             Строим для жителей
           </p>
         ) : null}

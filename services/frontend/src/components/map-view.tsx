@@ -1133,16 +1133,18 @@ export const MapView = ({
                 style={{ opacity: isHeatmapMode(mode) ? 1 : 0 }}
             />
             {hasActiveIsochrone && isochroneTime != null ? (
-                <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-sm px-margin pb-md md:px-margin-desktop md:pb-lg">
-                    <MapHint>
-                        Выберите время, чтобы изменить радиус зоны доступности
-                    </MapHint>
+                <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex w-full flex-col items-stretch gap-sm px-margin pb-safe md:px-margin-desktop md:pb-lg">
+                    <div className="flex justify-center">
+                        <MapHint>
+                            Выберите время, чтобы изменить радиус зоны доступности
+                        </MapHint>
+                    </div>
                     <IsochroneTimeSelector
                         selectedTime={isochroneTime}
                         onTimeChange={onIsochroneTimeChange ?? (() => {})}
                     />
                     {isochroneState.status === 'error' && !isochroneState.data ? (
-                        <p className="type-body-sm text-on-surface-variant">
+                        <p className="text-center type-body-sm text-on-surface-variant">
                             {isochroneState.message}
                         </p>
                     ) : null}

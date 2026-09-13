@@ -190,10 +190,10 @@ export default function Home() {
         selectedObject={selectedObject}
       />
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-margin pt-md md:px-margin-desktop">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-sm pt-sm md:px-margin-desktop md:pt-md">
         <div className="flex w-full flex-col items-start gap-sm">
           <div className="relative flex w-full items-center justify-between gap-sm md:gap-md">
-            <div className="pointer-events-auto min-w-0 shrink">
+            <div className="pointer-events-auto min-w-0 flex-1 md:flex-none md:shrink">
               <MapSearchBar
                 onChange={setSearchQuery}
                 onSearch={setSearchQuery}
@@ -252,19 +252,21 @@ export default function Home() {
 
       <div
         aria-hidden={isCardOpen}
-        className={`pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-sm px-margin pb-md transition-[opacity,transform] duration-300 ease-out md:px-margin-desktop md:pb-lg ${
+        className={`pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-sm px-margin pb-safe transition-[opacity,transform] duration-300 ease-out md:px-margin-desktop md:pb-lg ${
           isCardOpen
             ? "translate-y-3 opacity-0"
             : "translate-y-0 opacity-100"
         }`}
         inert={isCardOpen ? true : undefined}
       >
-        <div className="relative flex w-full flex-col items-center gap-sm">
-          <MapHint showHand={isObjectsMode}>{mapHintByMode[mapMode]}</MapHint>
+        <div className="relative flex w-full flex-col items-stretch gap-sm">
+          <div className="flex justify-center">
+            <MapHint showHand={isObjectsMode}>{mapHintByMode[mapMode]}</MapHint>
+          </div>
 
           <div
             aria-hidden={!isProvisionMode}
-            className={`transition-[opacity,transform] duration-300 ease-out ${
+            className={`flex justify-center transition-[opacity,transform] duration-300 ease-out ${
               isProvisionMode
                 ? "translate-y-0 opacity-100"
                 : "pointer-events-none absolute translate-y-2 opacity-0"
@@ -276,7 +278,7 @@ export default function Home() {
 
           <div
             aria-hidden={!isCoverageMode}
-            className={`transition-[opacity,transform] duration-300 ease-out ${
+            className={`flex justify-center transition-[opacity,transform] duration-300 ease-out ${
               isCoverageMode
                 ? "translate-y-0 opacity-100"
                 : "pointer-events-none absolute translate-y-2 opacity-0"
@@ -286,7 +288,7 @@ export default function Home() {
             <CoverageLegend />
           </div>
 
-          <div className="pointer-events-auto">
+          <div className="pointer-events-auto w-full min-w-0 md:w-auto md:self-center">
             <DateSelector
               maxDate={MAP_NOW}
               minDate={earliestDate}
