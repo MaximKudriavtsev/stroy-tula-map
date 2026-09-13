@@ -14,12 +14,15 @@ services:
     depends_on:
       - postgres
   web:
+    env_file:
+      - .env
     build:
       context: ./services/frontend
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_YANDEX_MAPS_API_KEY: ${NEXT_PUBLIC_YANDEX_MAPS_API_KEY}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_MAX_BOT_USERNAME: ${NEXT_PUBLIC_MAX_BOT_USERNAME}
     depends_on:
       - server
   postgres:
