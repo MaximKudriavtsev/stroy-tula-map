@@ -8,7 +8,7 @@ import {
   type AdminSection,
 } from "@/components/admin/admin-shell";
 import { ObjectsView } from "@/components/admin/objects-view";
-import { ReportsList } from "@/components/admin/reports-list";
+import { ReportsView } from "@/components/admin/reports-view";
 import { getAccessToken } from "@/lib/api/auth";
 
 export default function AdminPage() {
@@ -35,15 +35,7 @@ export default function AdminPage() {
   return (
     <AdminShell activeSection={section} onSectionChange={setSection}>
       {section === adminSections.reports ? (
-        <div className="flex flex-col gap-lg">
-          <div>
-            <h1 className="type-headline-md">Обращения</h1>
-            <p className="mt-xs type-body-md text-on-surface-variant">
-              Сообщения из бота MAX
-            </p>
-          </div>
-          <ReportsList />
-        </div>
+        <ReportsView />
       ) : (
         <ObjectsView />
       )}

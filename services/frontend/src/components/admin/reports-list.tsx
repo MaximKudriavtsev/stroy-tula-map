@@ -11,7 +11,11 @@ function formatDate(value: string): string {
   return date.toLocaleString("ru-RU");
 }
 
-export function ReportsList() {
+type ReportsListProps = {
+  onSelectReport?: (id: string) => void;
+};
+
+export function ReportsList({ onSelectReport }: ReportsListProps) {
   const [items, setItems] = useState<ApiReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,8 +95,13 @@ export function ReportsList() {
         <tbody>
           {items.map((item, index) => (
             <tr
-              className="border-b border-outline-variant last:border-b-0"
+              className={`border-b border-outline-variant last:border-b-0 ${
+                onSelectReport
+                  ? "cursor-pointer transition-colors hover:bg-surface-container"
+                  : ""
+              }`}
               key={item.id}
+              onClick={() => onSelectReport?.(item.id)}
             >
               <td className="px-md py-md type-body-md tnum text-on-surface">
                 {index + 1}

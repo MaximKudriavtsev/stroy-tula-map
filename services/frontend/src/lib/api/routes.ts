@@ -3,4 +3,6 @@ export const API_ROUTES = {
   objectById: (id: string) => `/object/${encodeURIComponent(id)}`,
   login: "/auth/login",
   reports: "/report",
+  reportById: (id: string) => `/report/${encodeURIComponent(id)}`,
+  reportReply: (id: string) => `/report/${encodeURIComponent(id)}/reply`,
 } as const;

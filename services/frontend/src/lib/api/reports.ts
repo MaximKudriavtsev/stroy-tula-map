@@ -57,3 +57,56 @@ export async function fetchReports(): Promise<ApiReport[]> {
 
   return (await response.json()) as ApiReport[];
 }
+
+export async function fetchReport(id: string): Promise<ApiReport> {
+  const response = await fetch(`${API_BASE_URL}${API_ROUTES.reportById(id)}`, {
+    cache: "no-store",
+    headers: {
+      ...authHeaders(),
+    },
+  });
+
+  if (response.status === 401) {
+    clearAccessToken();
+    redirectToAdminLogin();
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      await readErrorMessage(
+        response,
+        `Не удалось загрузить обращение (${response.status})`,
+      ),
+    );
+  }
+
+  return (await response.json()) as ApiReport;
+}
+
+export async function replyToReport(
+  id: string,
+  text: string,
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}${API_ROUTES.reportReply(id)}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({ text }),
+  });
+
+  if (response.status === 401) {
+    clearAccessToken();
+    redirectToAdminLogin();
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      await readErrorMessage(
+        response,
+        `Не удалось отправить ответ (${response.status})`,
+      ),
+    );
+  }
+}
