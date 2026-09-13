@@ -24,6 +24,7 @@ type ObjectCardTabsProps = {
   onShowIsochrone: () => void;
   onHideIsochrone: () => void;
   onStagePhotoChange?: (photoSrc: string) => void;
+  onPhotoViewerChange?: (open: boolean) => void;
 };
 
 export function ObjectCardTabs({
@@ -35,6 +36,7 @@ export function ObjectCardTabs({
   onShowIsochrone,
   onHideIsochrone,
   onStagePhotoChange,
+  onPhotoViewerChange,
 }: ObjectCardTabsProps) {
   const [tab, setTab] = useState(initialTab);
 
@@ -89,6 +91,7 @@ export function ObjectCardTabs({
           <ConstructionProgress
             mapDate={mapDate}
             object={object}
+            onPhotoViewerChange={onPhotoViewerChange}
             onStagePhotoChange={onStagePhotoChange}
             syncToMapDate={syncTimelineToMapDate}
           />

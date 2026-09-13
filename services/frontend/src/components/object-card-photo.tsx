@@ -11,6 +11,7 @@ type ObjectCardPhotoProps = {
   category: ObjectChipCategory;
   name: string;
   photoSrc?: string;
+  hideClose?: boolean;
   onClose: () => void;
 };
 
@@ -18,6 +19,7 @@ export function ObjectCardPhoto({
   category,
   name,
   photoSrc = objectCardPhotoSrc,
+  hideClose = false,
   onClose,
 }: ObjectCardPhotoProps) {
   const label = objectCategoryLabels[category];
@@ -40,14 +42,16 @@ export function ObjectCardPhoto({
             <span className="truncate type-label-md font-semibold">{label}</span>
           </div>
 
-          <button
-            aria-label="Закрыть карточку"
-            className="flex size-xl shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-panel transition-colors hover:bg-surface-container-low"
-            onClick={onClose}
-            type="button"
-          >
-            <CloseIcon className="size-md" />
-          </button>
+          {hideClose ? null : (
+            <button
+              aria-label="Закрыть карточку"
+              className="flex size-xl shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-panel transition-colors hover:bg-surface-container-low"
+              onClick={onClose}
+              type="button"
+            >
+              <CloseIcon className="size-md" />
+            </button>
+          )}
         </div>
       </div>
     </figure>

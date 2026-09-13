@@ -49,12 +49,17 @@ export function ObjectCard({
   const [photoSrc, setPhotoSrc] = useState(() =>
     photoForObject(object, mapDate),
   );
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const category = inferObjectCategory(object.name);
   const collapsed = isochroneActive;
 
   useEffect(() => {
     setPhotoSrc(photoForObject(object, mapDate));
   }, [object, mapDate]);
+
+  useEffect(() => {
+    setPhotoViewerOpen(false);
+  }, [object.id]);
 
   const handleShowIsochrone = () => {
     onShowIsochrone();
@@ -94,6 +99,7 @@ export function ObjectCard({
         <div className="flex min-h-0 flex-col overflow-hidden">
           <ObjectCardPhoto
             category={category}
+            hideClose={photoViewerOpen}
             name={object.name}
             onClose={handleClose}
             photoSrc={photoSrc}
@@ -117,6 +123,7 @@ export function ObjectCard({
               mapDate={mapDate}
               object={object}
               onHideIsochrone={onHideIsochrone}
+              onPhotoViewerChange={setPhotoViewerOpen}
               onShowIsochrone={handleShowIsochrone}
               onStagePhotoChange={setPhotoSrc}
               syncTimelineToMapDate={syncTimelineToMapDate}

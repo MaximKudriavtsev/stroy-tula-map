@@ -268,6 +268,60 @@ const syncMarkerSelection = (
     }
 };
 
+const prefersReducedMarkerMotion = () =>
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const playMarkerEnter = (element: HTMLElement) => {
+    const anim = element.querySelector<HTMLElement>('.map-marker-anim');
+    if (!anim || prefersReducedMarkerMotion()) {
+        return;
+    }
+
+    anim.classList.remove('map-marker-enter');
+    void anim.offsetWidth;
+    anim.classList.add('map-marker-enter');
+    anim.addEventListener(
+        'animationend',
+        () => {
+            anim.classList.remove('map-marker-enter');
+        },
+        { once: true }
+    );
+};
+
+const registerLiveMarkers = (
+    markerElements: Map<string, HTMLElement>,
+    enterIds: Set<string> | null
+) => {
+    document
+        .querySelectorAll<HTMLElement>('.map-marker-root[data-object-id]')
+        .forEach((element) => {
+            const objectId = element.dataset.objectId ?? '';
+            if (!objectId) {
+                return;
+            }
+
+            markerElements.set(objectId, element);
+
+            if (!enterIds?.has(objectId)) {
+                return;
+            }
+
+            playMarkerEnter(element);
+            enterIds.delete(objectId);
+        });
+};
+
+const findMarkerElement = (
+    objectId: string,
+    markerElements: Map<string, HTMLElement>
+) =>
+    markerElements.get(objectId) ??
+    document.querySelector<HTMLElement>(
+        `.map-marker-root[data-object-id="${CSS.escape(objectId)}"]`
+    );
+
 const spawnMarkerExitGhost = (
     source: HTMLElement,
     host: HTMLElement
@@ -470,6 +524,10 @@ export const MapView = ({
 
             frameId = window.requestAnimationFrame(() => {
                 frameId = 0;
+                registerLiveMarkers(
+                    markerElementsRef.current,
+                    enterIdsRef.current,
+                );
                 // Только CSS-класс: полный renderChip здесь зациклил бы observer
                 applySelectionClasses(selectedIdRef.current);
                 const selectedId = selectedIdRef.current;
@@ -940,13 +998,12 @@ export const MapView = ({
                 .filter((id) => !previousIds.has(id))
         );
 
-        const prefersReducedMotion =
-            typeof window !== 'undefined' &&
-            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-        if (!prefersReducedMotion && ghostHost && removed.length > 0) {
+        if (!prefersReducedMarkerMotion() && ghostHost && removed.length > 0) {
             for (const feature of removed) {
-                const element = markerElementsRef.current.get(String(feature.id));
+                const element = findMarkerElement(
+                    String(feature.id),
+                    markerElementsRef.current,
+                );
                 if (element) {
                     spawnMarkerExitGhost(element, ghostHost);
                 }
@@ -965,9 +1022,12 @@ export const MapView = ({
             }
         }
 
-        // Кластеризатор мог пересоздать DOM — заново навешиваем selected
+        registerLiveMarkers(markerElementsRef.current, addedIds);
+
+        // Кластеризатор мог пересоздать DOM — заново навешиваем selected и попап
         syncMarkerSelection(selectedIdRef.current, chipRenderersRef.current);
         window.requestAnimationFrame(() => {
+            registerLiveMarkers(markerElementsRef.current, enterIdsRef.current);
             syncMarkerSelection(selectedIdRef.current, chipRenderersRef.current);
         });
 

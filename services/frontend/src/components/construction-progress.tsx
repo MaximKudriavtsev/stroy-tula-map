@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ConstructionObject } from "@/data/objects";
 import {
   constructionStages,
   constructionTimelineForObject,
   resolveTimelineKey,
   stageForProgress,
+  type ConstructionStage,
   type ConstructionTimelinePoint,
 } from "@/lib/construction-progress";
 
@@ -15,6 +17,7 @@ type ConstructionProgressProps = {
   mapDate?: Date | null;
   syncToMapDate?: boolean;
   onStagePhotoChange?: (photoSrc: string) => void;
+  onPhotoViewerChange?: (open: boolean) => void;
 };
 
 export function ConstructionProgress({
@@ -22,6 +25,7 @@ export function ConstructionProgress({
   mapDate = null,
   syncToMapDate = false,
   onStagePhotoChange,
+  onPhotoViewerChange,
 }: ConstructionProgressProps) {
   const points = useMemo(
     () => constructionTimelineForObject(object),
@@ -68,7 +72,10 @@ export function ConstructionProgress({
         progress={selected.progress}
         stageTitle={stage.title}
       />
-      <SitePhotosSection objectName={object.name} />
+      <SitePhotosSection
+        objectName={object.name}
+        onPhotoViewerChange={onPhotoViewerChange}
+      />
     </div>
   );
 }
@@ -193,7 +200,29 @@ function ReadinessSection({
   );
 }
 
-function SitePhotosSection({ objectName }: { objectName: string }) {
+function SitePhotosSection({
+  objectName,
+  onPhotoViewerChange,
+}: {
+  objectName: string;
+  onPhotoViewerChange?: (open: boolean) => void;
+}) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    onPhotoViewerChange?.(openIndex != null);
+  }, [onPhotoViewerChange, openIndex]);
+
+  useEffect(() => {
+    return () => {
+      onPhotoViewerChange?.(false);
+    };
+  }, [onPhotoViewerChange]);
+
+  useEffect(() => {
+    setOpenIndex(null);
+  }, [objectName]);
+
   return (
     <section aria-label="Фотохроника со стройплощадки" className="flex flex-col gap-sm">
       <div className="flex items-center gap-sm">
@@ -204,23 +233,156 @@ function SitePhotosSection({ objectName }: { objectName: string }) {
       </div>
 
       <div className="grid grid-cols-2 gap-sm sm:grid-cols-3">
-        {constructionStages.map((stage) => (
-          <figure
-            className="relative overflow-hidden rounded-xl"
+        {constructionStages.map((stage, index) => (
+          <button
+            aria-label={`Открыть фото: ${stage.title}`}
+            className="relative cursor-pointer overflow-hidden rounded-xl text-left transition-transform hover:brightness-105 active:scale-[0.99]"
             key={stage.photoSrc}
+            onClick={() => setOpenIndex(index)}
+            type="button"
           >
             <img
               alt={`${objectName}: ${stage.title}`}
               className="aspect-[4/5] w-full object-cover"
               src={stage.photoSrc}
             />
-            <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-inverse-surface/90 px-sm py-sm type-body-sm text-inverse-on-surface">
+            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-inverse-surface/90 px-sm py-sm type-body-sm text-inverse-on-surface">
               {stage.title}
-            </figcaption>
-          </figure>
+            </span>
+          </button>
         ))}
       </div>
+
+      {openIndex != null ? (
+        <SitePhotoLightbox
+          index={openIndex}
+          objectName={objectName}
+          onClose={() => setOpenIndex(null)}
+          onIndexChange={setOpenIndex}
+          stages={constructionStages}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function SitePhotoLightbox({
+  index,
+  objectName,
+  stages,
+  onClose,
+  onIndexChange,
+}: {
+  index: number;
+  objectName: string;
+  stages: readonly ConstructionStage[];
+  onClose: () => void;
+  onIndexChange: (index: number) => void;
+}) {
+  const stage = stages[index];
+  const canPrev = index > 0;
+  const canNext = index < stages.length - 1;
+
+  const showPrev = useCallback(() => {
+    onIndexChange(Math.max(0, index - 1));
+  }, [index, onIndexChange]);
+
+  const showNext = useCallback(() => {
+    onIndexChange(Math.min(stages.length - 1, index + 1));
+  }, [index, onIndexChange, stages.length]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        showPrev();
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        showNext();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, showNext, showPrev]);
+
+  if (typeof document === "undefined" || !stage) {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      aria-label={`Фото: ${stage.title}`}
+      aria-modal="true"
+      className="fixed inset-0 z-[200] flex flex-col bg-inverse-surface/95 text-inverse-on-surface"
+      role="dialog"
+    >
+      <div className="flex shrink-0 items-start justify-between gap-md px-md pt-md pb-sm md:px-lg md:pt-lg">
+        <div className="min-w-0">
+          <p className="type-label-sm text-inverse-on-surface/70">
+            Фотохроника · {index + 1} / {stages.length}
+          </p>
+          <h2 className="mt-xs truncate type-title-sm">{stage.title}</h2>
+          <p className="mt-xs truncate type-body-sm text-inverse-on-surface/70">
+            {objectName}
+          </p>
+        </div>
+        <button
+          aria-label="Закрыть фото"
+          className="flex size-xl shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-panel transition-colors hover:bg-surface-container-low"
+          onClick={onClose}
+          type="button"
+        >
+          <CloseIcon className="size-md" />
+        </button>
+      </div>
+
+      <div className="relative min-h-0 flex-1">
+        <button
+          aria-label="Закрыть фото"
+          className="absolute inset-0 cursor-zoom-out"
+          onClick={onClose}
+          type="button"
+        />
+
+        <img
+          alt={`${objectName}: ${stage.title}`}
+          className="pointer-events-none absolute inset-0 m-auto max-h-full max-w-full object-contain px-sm pb-sm md:px-lg md:pb-md"
+          src={stage.photoSrc}
+        />
+
+        {canPrev ? (
+          <button
+            aria-label="Предыдущее фото"
+            className="absolute top-1/2 left-sm flex size-xl -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-inverse-on-surface/10 text-inverse-on-surface transition-colors hover:bg-inverse-on-surface/20 md:left-md"
+            onClick={showPrev}
+            type="button"
+          >
+            <ChevronIcon className="size-md rotate-90" />
+          </button>
+        ) : null}
+
+        {canNext ? (
+          <button
+            aria-label="Следующее фото"
+            className="absolute top-1/2 right-sm flex size-xl -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-inverse-on-surface/10 text-inverse-on-surface transition-colors hover:bg-inverse-on-surface/20 md:right-md"
+            onClick={showNext}
+            type="button"
+          >
+            <ChevronIcon className="size-md -rotate-90" />
+          </button>
+        ) : null}
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -292,6 +454,43 @@ function CameraIcon({ className }: { className?: string }) {
         strokeWidth="1.5"
       />
       <circle cx="10" cy="11" r="2.4" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 20 20"
+    >
+      <path
+        d="M6 6l8 8M14 6l-8 8"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+function ChevronIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 20 20"
+    >
+      <path
+        d="M5 7.5 10 12.5 15 7.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
     </svg>
   );
 }

@@ -114,6 +114,7 @@ export default function Home() {
       return;
     }
 
+    setIsochroneTime(null);
     setIsCardOpen(false);
   }, [isHeatmap]);
 
@@ -203,10 +204,10 @@ export default function Home() {
             <div className="flex shrink-0 items-center gap-sm">
               <div
                 aria-hidden={!showStatusBar}
-                className={`pointer-events-auto transition-[opacity,transform] duration-300 ease-out ${
+                className={`pointer-events-auto hidden transition-[opacity,transform] duration-300 ease-out md:flex ${
                   showStatusBar
-                    ? "hidden translate-x-0 opacity-100 md:flex"
-                    : "hidden"
+                    ? "translate-x-0 opacity-100"
+                    : "pointer-events-none translate-x-3 opacity-0"
                 }`}
                 inert={!showStatusBar ? true : undefined}
               >
@@ -260,16 +261,37 @@ export default function Home() {
         inert={isCardOpen ? true : undefined}
       >
         <div className="relative flex w-full flex-col items-stretch gap-sm">
-          <div className="flex justify-center">
-            <MapHint showHand={isObjectsMode}>{mapHintByMode[mapMode]}</MapHint>
+          <div className="relative flex w-full justify-center">
+            {(
+              [mapModes.objects, mapModes.coverage, mapModes.provision] as const
+            ).map((mode) => {
+              const active = mapMode === mode;
+
+              return (
+                <div
+                  aria-hidden={!active}
+                  className={`flex w-full justify-center transition-[opacity,transform] duration-300 ease-out ${
+                    active
+                      ? "translate-y-0 opacity-100"
+                      : "pointer-events-none absolute inset-x-0 translate-y-2 opacity-0"
+                  }`}
+                  inert={!active ? true : undefined}
+                  key={mode}
+                >
+                  <MapHint showHand={mode === mapModes.objects}>
+                    {mapHintByMode[mode]}
+                  </MapHint>
+                </div>
+              );
+            })}
           </div>
 
           <div
             aria-hidden={!isProvisionMode}
-            className={`flex justify-center transition-[opacity,transform] duration-300 ease-out ${
+            className={`flex w-full justify-center transition-[opacity,transform] duration-300 ease-out ${
               isProvisionMode
                 ? "translate-y-0 opacity-100"
-                : "pointer-events-none absolute translate-y-2 opacity-0"
+                : "pointer-events-none absolute inset-x-0 translate-y-2 opacity-0"
             }`}
             inert={!isProvisionMode ? true : undefined}
           >
@@ -278,10 +300,10 @@ export default function Home() {
 
           <div
             aria-hidden={!isCoverageMode}
-            className={`flex justify-center transition-[opacity,transform] duration-300 ease-out ${
+            className={`flex w-full justify-center transition-[opacity,transform] duration-300 ease-out ${
               isCoverageMode
                 ? "translate-y-0 opacity-100"
-                : "pointer-events-none absolute translate-y-2 opacity-0"
+                : "pointer-events-none absolute inset-x-0 translate-y-2 opacity-0"
             }`}
             inert={!isCoverageMode ? true : undefined}
           >
@@ -299,7 +321,7 @@ export default function Home() {
         </div>
       </div>
 
-      {selectedObject && !isHeatmap ? (
+      {selectedObject ? (
         <ObjectCard
           isochroneActive={isochroneTime !== null}
           mapDate={mapDate}
@@ -307,7 +329,7 @@ export default function Home() {
           onClose={handleCardClose}
           onHideIsochrone={handleHideIsochrone}
           onShowIsochrone={handleShowIsochrone}
-          open={isCardOpen && !isHeatmap}
+          open={isCardOpen}
           syncTimelineToMapDate={!isCurrentMapDate}
         />
       ) : null}
