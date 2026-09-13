@@ -171,7 +171,8 @@ async function main() {
   }, {});
   console.log('Category mapping:', categoryCounts);
 
-  const baseUrl = process.env.API_URL ?? 'http://localhost:4000';
+  const baseUrl =
+    process.env.API_URL ?? `http://127.0.0.1:${process.env.PORT || 4000}`;
   const adminJwt = process.env.ADMIN_JWT;
   if (!adminJwt) {
     console.error('Set ADMIN_JWT (Bearer token from POST /auth/login)');
