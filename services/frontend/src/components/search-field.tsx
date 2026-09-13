@@ -39,7 +39,7 @@ export function SearchField({
   return (
     <form
       aria-label="Поиск по карте"
-      className="relative flex w-80 max-w-full items-center gap-sm md:w-96"
+      className="relative flex w-full min-w-0 items-center gap-sm md:w-96"
       onSubmit={handleSubmit}
     >
       <SearchIcon className="size-md shrink-0 text-outline" />
@@ -47,7 +47,7 @@ export function SearchField({
         aria-label="Поиск: больница, школа, парк, мост или адрес"
         className="h-xl min-w-0 flex-1 appearance-none overflow-hidden text-ellipsis whitespace-nowrap bg-transparent type-body-md text-on-surface outline-none placeholder:overflow-hidden placeholder:text-ellipsis placeholder:whitespace-nowrap placeholder:text-outline [&::-webkit-search-cancel-button]:hidden"
         onChange={(event) => handleChange(event.target.value)}
-        placeholder="Поиск: больница, школа, парк, мост или адрес..."
+        placeholder="Больница, школа, парк..."
         type="search"
         value={query}
       />

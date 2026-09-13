@@ -13,13 +13,13 @@ export const ProvisionLegend = () => {
   return (
     <div
       aria-label="Легенда обеспеченности"
-      className="inline-flex max-w-full flex-wrap items-center justify-center gap-sm rounded-full border border-outline-variant bg-surface-container-lowest px-md py-sm shadow-panel type-body-md text-on-surface"
+      className="inline-flex max-w-full flex-wrap items-center justify-center gap-sm rounded-2xl border border-outline-variant bg-surface-container-lowest px-sm py-sm shadow-panel type-body-sm text-on-surface md:rounded-full md:px-md md:type-body-md"
     >
       <span className="shrink-0 text-on-surface-variant">Дефицит</span>
       <span className="flex shrink-0 flex-col items-center gap-0.5">
         <span
           aria-hidden="true"
-          className="flex h-2.5 w-32 overflow-hidden rounded-full"
+          className="flex h-2.5 w-16 overflow-hidden rounded-full sm:w-32"
         >
           {provisionBandCssColors.map((color, index) => (
             <span
@@ -34,7 +34,7 @@ export const ProvisionLegend = () => {
       <span className="shrink-0 text-on-surface-variant">Профицит</span>
 
       {neutralStates.map((state) => (
-        <span className="flex shrink-0 items-center gap-1.5" key={state.label}>
+        <span className="hidden shrink-0 items-center gap-1.5 sm:flex" key={state.label}>
           <span
             aria-hidden="true"
             className="size-2.5 shrink-0 rounded-full border border-outline-variant"

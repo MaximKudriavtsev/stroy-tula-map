@@ -24,7 +24,7 @@ export const MapModeSwitch = ({ value, onChange }: MapModeSwitchProps) => {
   return (
     <div
       aria-label="Режим карты"
-      className="inline-flex h-12 items-center gap-sm rounded-full border border-outline-variant bg-surface-container-lowest p-xs shadow-panel"
+      className="inline-flex h-12 shrink-0 items-center gap-xs rounded-full border border-outline-variant bg-surface-container-lowest p-xs shadow-panel md:gap-sm"
       role="group"
     >
       {modeOrder.map((mode, index) => {

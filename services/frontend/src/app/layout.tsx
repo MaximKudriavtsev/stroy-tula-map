@@ -14,6 +14,12 @@ export const metadata: Metadata = {
   referrer: "origin-when-cross-origin",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html

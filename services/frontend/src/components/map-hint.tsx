@@ -9,7 +9,7 @@ export function MapHint({
 }: MapHintProps) {
   return (
     <p
-      className={`inline-flex max-w-full items-center gap-sm rounded-full border border-outline-variant bg-surface-container-lowest px-md py-sm shadow-panel type-body-md text-on-surface ${
+      className={`inline-flex max-w-full items-start gap-sm rounded-2xl border border-outline-variant bg-surface-container-lowest px-sm py-sm shadow-panel type-body-sm text-on-surface md:items-center md:rounded-full md:px-md md:type-body-md ${
         showHand ? "animate-map-hint-bounce" : ""
       }`}
       role="status"
@@ -17,7 +17,7 @@ export function MapHint({
       {showHand ? (
         <PointingHandIcon className="size-md shrink-0 text-on-surface-variant" />
       ) : null}
-      <span>{children}</span>
+      <span className="min-w-0 text-pretty">{children}</span>
     </p>
   );
 }

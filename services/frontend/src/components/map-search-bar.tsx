@@ -20,16 +20,18 @@ export function MapSearchBar({
 }: MapSearchBarProps) {
     return (
         <div
-            className={`flex h-12 items-center gap-sm rounded-full border border-outline-variant bg-surface-container-lowest py-xs pl-xs pr-md shadow-panel md:gap-md ${className}`.trim()}
+            className={`flex h-12 min-w-0 max-w-full items-center gap-sm rounded-full border border-outline-variant bg-surface-container-lowest py-xs pl-xs pr-md shadow-panel md:gap-md ${className}`.trim()}
         >
-            <Brand />
+            <Brand compactOnMobile />
 
             <div
                 aria-hidden="true"
-                className="hidden h-xl w-px shrink-0 bg-outline-variant sm:block"
+                className="hidden h-xl w-px shrink-0 bg-outline-variant md:block"
             />
 
-            <SearchField onChange={onChange} onSearch={onSearch} value={value} />
+            <div className="min-w-0 flex-1">
+                <SearchField onChange={onChange} onSearch={onSearch} value={value} />
+            </div>
         </div>
     );
 }
